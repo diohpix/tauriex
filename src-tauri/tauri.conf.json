@@ -3,15 +3,23 @@
     "beforeBuildCommand": "npm run build",
     "beforeDevCommand": "npm run dev",
     "devPath": "http://localhost:8080",
+    "withGlobalTauri":true,
     "distDir": "../build"
   },
   "package": {
-    "productName": "temp2",
+    "productName": "myterm",
     "version": "0.1.0"
   },
+  
   "tauri": {
     "allowlist": {
-      "all": false
+      "all": true,
+      "shell":{
+        "all":true,
+        "scope":[
+          {"name":"ssh","cmd":"ssh","args":[{ "validator": "\\S+" }]}
+        ]
+      }
     },
     "bundle": {
       "active": true,
@@ -57,7 +65,7 @@
         "fullscreen": false,
         "height": 600,
         "resizable": true,
-        "title": "temp2",
+        "title": "myTerm",
         "width": 800
       }
     ]
