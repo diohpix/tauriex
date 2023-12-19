@@ -46,6 +46,7 @@
     }
     function resize(){
         fitAddon.fit();
+        invoke('resize_pty',{id,size:{rows:120,cols:100,pixel_width:1024,pixel_height:1024}})
     }
     async function ls(){
         console.log(id)
@@ -53,7 +54,7 @@
         unlisten();
     }
     async function close(){
-        invoke('write_pty',{id,data:'exit\n'})
+        invoke('kill_pty',{id})
         unlisten();
     }
     window.onresize =resize
