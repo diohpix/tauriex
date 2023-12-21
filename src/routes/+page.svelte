@@ -6,6 +6,7 @@
 	import { onMount } from "svelte";
     import {Terminal} from 'xterm'
     import { FitAddon } from 'xterm-addon-fit';
+    import {WebglAddon} from 'xterm-addon-webgl'
     import 'xterm/css/xterm.css'
     
     let shell = {
@@ -25,13 +26,13 @@
         term = new Terminal({})
         fitAddon = new FitAddon();
         term.loadAddon(fitAddon);
+        term.loadAddon(new WebglAddon());
         term.options={"fontSize":12}
         term.open(document.getElementById('terminal')) 
         fitAddon.fit();
         
         term.onData((data:any) => {
             invoke('write_pty',{id,data})
-            fitAddon.fit();
         });
         
         unlisten = await listen('EVENTS:PTY:STDOUT', (event:any) => {
