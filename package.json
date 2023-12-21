@@ -36,7 +36,7 @@
 	"type": "module",
 	"dependencies": {
 		"@tauri-apps/api": "^1.5.2",
-		"ansi_up": "^6.0.2",
-		"ansi-to-html": "^0.7.2"
+		"xterm-addon-unicode11": "^0.6.0",
+		"xterm-addon-webgl": "^0.16.0"
 	}
 }
