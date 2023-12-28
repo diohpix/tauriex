@@ -30,6 +30,9 @@
         term.options={"fontSize":12}
         term.open(document.getElementById('terminal')) 
         fitAddon.fit();
+        term.textarea.addEventListener('input',(e:any)=>{
+            console.log('input ',e)
+        })
         
         term.onData((data:any) => {
             invoke('write_pty',{id,data})
@@ -50,7 +53,7 @@
         invoke('resize_pty',{id,size:{rows:120,cols:100,pixel_width:1024,pixel_height:1024}})
     }
     async function ls(){
-        console.log(id)
+        
         invoke('write_pty',{id,data:'ls\n'})
         unlisten();
     }
@@ -58,6 +61,19 @@
         invoke('kill_pty',{id})
         unlisten();
     }
+    function send(e:InputEvent){
+        console.log(e)
+        
+            invoke('write_pty',{id,data:e.data})
+        
+    }
+    function cr(e:KeyboardEvent){
+        if(e.key=="Enter"){
+            invoke('write_pty',{id,data:'\n'})
+            cmd=''
+        }
+    }
+    let cmd:any;
     window.onresize =resize
 </script>
 <body class="h-screen w-screen bg-gray-800">
@@ -76,7 +92,10 @@
         </button>
         
     </div>
-    <div class="h-full">
+    <div class="overflow-y-auto">
       <div id="terminal"  class="h-full"/>
     </div>
+    <footer class="bg-white rounded-lg shadow m-4 dark:bg-gray-800">
+        <input bind:value={cmd} on:keydown={cr} on:input={send} class="w-full">
+    </footer>
   </body>
