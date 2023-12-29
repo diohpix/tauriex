@@ -27,15 +27,36 @@
         fitAddon = new FitAddon();
         term.loadAddon(fitAddon);
         term.loadAddon(new WebglAddon());
-        term.options={"fontSize":12,"logLevel":"debug"}
+        term.options={"fontSize":12}
         term.open(document.getElementById('terminal')) 
         fitAddon.fit();
-        term.textarea.addEventListener('input',(e:any)=>{
-            console.log('input ',e)
+        console.log(term.textarea);
+      
+        term.element.addEventListener('input',(e)=>{
+            console.log('input',e)
+            onInput(e);
+            return true
+        })
+        term.element.addEventListener('keyup',(e)=>{
+            
+            keyup(e);
+            return true
+        })
+        term.element.addEventListener('keydown',(e)=>{
+            
+            keydown(e);
+            return true
         })
         
         term.onData((data:any) => {
-            invoke('write_pty',{id,data})
+            console.log('ondata ',data,composingStart);
+            const keyCode = data.charCodeAt(0)
+            if(composingStart==false && keyCode < 255){
+                invoke('write_pty',{id,data})  
+                send=true
+            }
+          //  invoke('write_pty',{id,data})
+           
         });
         
         unlisten = await listen('EVENTS:PTY:STDOUT', (event:any) => {
@@ -66,7 +87,7 @@
     let composingStart = false;
     let composingEnd = false;
     
-    function send(e:InputEvent){
+    function onInput(e:InputEvent){
         const key = e.data;
         const inputType =e.inputType;
         if(key !==null){
@@ -91,7 +112,98 @@
         }
         
     }
-    function cr(e:KeyboardEvent){
+    let send = false;
+    function keydown(e:KeyboardEvent){
+        
+        const key = e.key;
+        const identifier = e.keyIdentifier.split("U+");
+        console.log('down',key,composedChar,composingEnd)
+        if(key =="Backspace"){
+            send=true;
+            invoke('write_pty',{id,data:'\x08'})
+            return
+        }
+        if(key =="Escape"){
+            send=true;
+            invoke('write_pty',{id,data:'\x1B'})
+            return
+        }
+        if(key =="Enter"){
+            send=true;
+            invoke('write_pty',{id,data:'\x0D'})
+            cmd=''
+            return
+        }
+        if(identifier.length==2){
+            if(e.ctrlKey && key=='c'){
+                send=true;
+                invoke('write_pty',{id,data:'\x03'})
+                return
+            }
+            const keyCode = key?.charCodeAt(0)
+            
+            if(keyCode < 255 || composingEnd){
+                if(composingEnd){
+                    invoke('write_pty',{id,data:composedChar})
+                    composingEnd=false;
+                    console.log(1)
+                    if(keyCode < 255){
+                        invoke('write_pty',{id,data:key})
+                    }
+                    send=true;
+                }else{
+                    invoke('write_pty',{id,data:key})
+                    send=true;
+                    console.log(2)
+                }
+            }
+        }
+    }
+    
+    function keyup(e:KeyboardEvent){
+        const key = e.key;
+        const identifier = e.keyIdentifier.split("U+");
+        console.log('up ',key,composedChar,composingEnd)
+        if(send){
+            send=false;
+            return;
+        }
+        if(key =="Backspace"){
+            return
+        }
+        if(key =="Escape"){
+            return
+        }
+        if(key =="Enter"){
+            invoke('write_pty',{id,data:'\x0D'})
+            cmd=''
+            send=true
+            return
+        }
+        
+        if(identifier.length==2){
+            if(e.ctrlKey && key=='c'){
+                invoke('write_pty',{id,data:'\x03'})
+                return
+            }
+            const keyCode = key?.charCodeAt(0)
+         
+            if(keyCode < 255 || composingEnd){
+                if(composingEnd){
+                    invoke('write_pty',{id,data:composedChar})
+                    composingEnd=false;
+                    console.log(1)
+                    if(keyCode < 255){
+                        invoke('write_pty',{id,data:key})
+                    }
+                }else{
+                    invoke('write_pty',{id,data:key})
+                }
+            }
+        }
+    }
+    /*
+    function keydown(e:KeyboardEvent){
         
         const key = e.key;
         const identifier = e.keyIdentifier.split("U+");
@@ -130,6 +242,41 @@
             }
         }
     }
+    function keyup(e:KeyboardEvent){
+        const key = e.key;
+        const identifier = e.keyIdentifier.split("U+");
+        if(key =="Backspace"){
+            return
+        }
+        if(key =="Escape"){
+            return
+        }
+        if(key =="Enter"){
+            invoke('write_pty',{id,data:'\x0D'})
+            cmd=''
+            return
+        }
+        if(identifier.length==2){
+            if(e.ctrlKey && key=='c'){
+                invoke('write_pty',{id,data:'\x03'})
+                return
+            }
+            const keyCode = key?.charCodeAt(0)
+         //   console.log(key,keyCode,composedChar,composingEnd)
+            if(keyCode < 255 || composingEnd){
+                if(composingEnd){
+                    invoke('write_pty',{id,data:composedChar})
+                    composingEnd=false;
+                    console.log(1)
+                    if(keyCode < 255){
+                        invoke('write_pty',{id,data:key})
+                    }
+                }else{
+                    invoke('write_pty',{id,data:key})
+                }
+            }
+        }
+    }*/
     let cmd:any;
     window.onresize =resize
     onMount(()=>{
@@ -155,7 +302,7 @@
     <div class="overflow-y-auto">
       <div id="terminal"  class="h-full"/>
     </div>
-    <footer class="bg-white rounded-lg shadow m-4 dark:bg-gray-800">
-        <input bind:value={cmd} on:keyup={cr} on:input={send}    class="w-full">
-    </footer>
+    <!--footer class="bg-white rounded-lg shadow m-4 dark:bg-gray-800">
+        <input bind:value={cmd} on:keyup={keyup} on:input={onInput}    class="w-full">
+    </footer-->
   </body>
