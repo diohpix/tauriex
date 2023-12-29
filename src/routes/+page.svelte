@@ -27,7 +27,7 @@
         fitAddon = new FitAddon();
         term.loadAddon(fitAddon);
         term.loadAddon(new WebglAddon());
-        term.options={"fontSize":12}
+        term.options={"fontSize":12,"logLevel":"debug"}
         term.open(document.getElementById('terminal')) 
         fitAddon.fit();
         term.textarea.addEventListener('input',(e:any)=>{
@@ -61,20 +61,80 @@
         invoke('kill_pty',{id})
         unlisten();
     }
+    
+    let composedChar:any=''
+    let composingStart = false;
+    let composingEnd = false;
+    
     function send(e:InputEvent){
-        console.log(e)
-        
-            invoke('write_pty',{id,data:e.data})
+        const key = e.data;
+        const inputType =e.inputType;
+        if(key !==null){
+            const keyCode = key?.charCodeAt(0)
+            if( keyCode > 255 && inputType==='insertText' ){ //한글입력
+                if(composingStart){ // 한글입력중 다른 한글 입력되면
+                    composingEnd=true;
+                }else{// 최초한글입력
+                    composingStart=true;
+                    composingEnd = false
+                    composedChar=key;
+                }
+            }else if(keyCode > 255 && composingStart){ // 한글 조합중
+                composedChar=key;
+            }else if(keyCode < 255){ // ascii 입력하면 
+                if(composingStart){
+                    composingEnd=true;
+                    composingStart=false;
+                }
+            }
+           // console.log(inputType,"key ",key,keyCode,'composedChar ',composedChar,'start',composingStart,'end',composingEnd)
+        }
         
     }
     function cr(e:KeyboardEvent){
-        if(e.key=="Enter"){
-            invoke('write_pty',{id,data:'\n'})
+        
+        const key = e.key;
+        const identifier = e.keyIdentifier.split("U+");
+        if(key =="Backspace"){
+            invoke('write_pty',{id,data:'\x08'})
+            return
+        }
+        if(key =="Escape"){
+            invoke('write_pty',{id,data:'\x1B'})
+            return
+        }
+        if(key =="Enter"){
+            invoke('write_pty',{id,data:'\x0D'})
             cmd=''
+            return
+        }
+        if(identifier.length==2){
+            if(e.ctrlKey && key=='c'){
+                invoke('write_pty',{id,data:'\x03'})
+                return
+            }
+            const keyCode = key?.charCodeAt(0)
+         //   console.log(key,keyCode,composedChar,composingEnd)
+            if(keyCode < 255 || composingEnd){
+                if(composingEnd){
+                    invoke('write_pty',{id,data:composedChar})
+                    composingEnd=false;
+                    console.log(1)
+                    if(keyCode < 255){
+                        invoke('write_pty',{id,data:key})
+                    }
+                }else{
+                    invoke('write_pty',{id,data:key})
+                    console.log(2)
+                }
+            }
         }
     }
     let cmd:any;
     window.onresize =resize
+    onMount(()=>{
+        zsh()
+    })
 </script>
 <body class="h-screen w-screen bg-gray-800">
     <div class="flex items-center space-x-1 rtl:space-x-reverse sm:pe-4">
@@ -96,6 +156,6 @@
       <div id="terminal"  class="h-full"/>
     </div>
     <footer class="bg-white rounded-lg shadow m-4 dark:bg-gray-800">
-        <input bind:value={cmd} on:keydown={cr} on:input={send} class="w-full">
+        <input bind:value={cmd} on:keyup={cr} on:input={send}    class="w-full">
     </footer>
   </body>
