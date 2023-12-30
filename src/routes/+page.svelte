@@ -3,12 +3,12 @@
     import { invoke } from '@tauri-apps/api/tauri'
     import { Command } from '@tauri-apps/api/shell'
     import { emit, listen } from '@tauri-apps/api/event'
-	import { onMount } from "svelte";
+	import { onDestroy, onMount } from "svelte";
     import {Terminal} from 'xterm'
     import { FitAddon } from 'xterm-addon-fit';
     import {WebglAddon} from 'xterm-addon-webgl'
     import 'xterm/css/xterm.css'
-    
+    import ansiEscapes from 'ansi-escapes';
     let shell = {
 	    id: '1',
 	    name: '12',
@@ -30,33 +30,56 @@
         term.options={"fontSize":12}
         term.open(document.getElementById('terminal')) 
         fitAddon.fit();
-        console.log(term.textarea);
-      
-        term.element.addEventListener('input',(e)=>{
-            console.log('input',e)
-            onInput(e);
-            return true
-        })
-        term.element.addEventListener('keyup',(e)=>{
-            
-            keyup(e);
-            return true
-        })
-        term.element.addEventListener('keydown',(e)=>{
-            
-            keydown(e);
-            return true
-        })
-        
-        term.onData((data:any) => {
-            console.log('ondata ',data,composingStart);
-            const keyCode = data.charCodeAt(0)
-            if(composingStart==false && keyCode < 255){
-                invoke('write_pty',{id,data})  
-                send=true
+        let composingStart = false;
+        let fromOndata= false;
+    
+        term.element.addEventListener('input',(e:InputEvent)=>{
+            const key = e.data;
+            const inputType =e.inputType;
+            if(key !==null){
+                const keyCode = key.charCodeAt(0);
+                console.log(inputType,"key ",key,'start',composingStart,keyCode)
+                if( (keyCode < 12593 || keyCode > 12643) && (keyCode < 44032 || keyCode > 55203) ){
+                    return
+                }
+                if(inputType ==='insertText'){  
+                    if(composingStart){
+                        invoke('write_pty',{id,data:'\u001b[C'})    
+                    }
+                    invoke('write_pty',{id,data:key})    
+                    invoke('write_pty',{id,data:'\u001b[D'})
+                    composingStart=true
+                }else{
+                    invoke('write_pty',{id,data:'\u001b[3~'})
+                    invoke('write_pty',{id,data:key})
+                    invoke('write_pty',{id,data:'\u001b[D'})
+                }
+                fromOndata=true
             }
-          //  invoke('write_pty',{id,data})
-           
+            return true
+        })
+        term.element.addEventListener('keydown',(e:KeyboardEvent)=>{  
+            const key = e.key;
+            console.log('down',key,'compStart',composingStart)
+            if(fromOndata){
+                fromOndata=false;
+            }else{
+                if(!e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey)
+                invoke('write_pty',{id,data:key})
+            }
+            return true
+        })
+        term.onData((data:any) => {
+            fromOndata=true
+            const keyCode = data.charCodeAt(0)
+            console.log('---- ondata ',data,'compStart',composingStart,keyCode);
+            if( (keyCode < 12593 || keyCode > 12643) && (keyCode < 44032 || keyCode > 55203) ){
+                if(composingStart){
+                    invoke('write_pty',{id,data:'\u001b[C'})
+                }
+                invoke('write_pty',{id,data})
+                composingStart=false;
+            }
         });
         
         unlisten = await listen('EVENTS:PTY:STDOUT', (event:any) => {
@@ -65,9 +88,12 @@
             term.write(bytes)
         })
     })
+    onDestroy(()=>{
+        invoke('kill_pty',{id})
+    })
     async function zsh(){
        var a= await invoke('spawn_pty',{shell});
-       console.log('a',a)
+       console.log('---------------shell---------------')
     }
     function resize(){
         fitAddon.fit();
@@ -83,125 +109,7 @@
         unlisten();
     }
     
-    let composedChar:any=''
-    let composingStart = false;
-    let composingEnd = false;
     
-    function onInput(e:InputEvent){
-        const key = e.data;
-        const inputType =e.inputType;
-        if(key !==null){
-            const keyCode = key?.charCodeAt(0)
-            if( keyCode > 255 && inputType==='insertText' ){ //한글입력
-                if(composingStart){ // 한글입력중 다른 한글 입력되면
-                    composingEnd=true;
-                }else{// 최초한글입력
-                    composingStart=true;
-                    composingEnd = false
-                    composedChar=key;
-                }
-            }else if(keyCode > 255 && composingStart){ // 한글 조합중
-                composedChar=key;
-            }else if(keyCode < 255){ // ascii 입력하면 
-                if(composingStart){
-                    composingEnd=true;
-                    composingStart=false;
-                }
-            }
-           // console.log(inputType,"key ",key,keyCode,'composedChar ',composedChar,'start',composingStart,'end',composingEnd)
-        }
-        
-    }
-    let send = false;
-    function keydown(e:KeyboardEvent){
-        
-        const key = e.key;
-        const identifier = e.keyIdentifier.split("U+");
-        console.log('down',key,composedChar,composingEnd)
-        if(key =="Backspace"){
-            send=true;
-            invoke('write_pty',{id,data:'\x08'})
-            return
-        }
-        if(key =="Escape"){
-            send=true;
-            invoke('write_pty',{id,data:'\x1B'})
-            return
-        }
-        if(key =="Enter"){
-            send=true;
-            invoke('write_pty',{id,data:'\x0D'})
-            cmd=''
-            return
-        }
-        if(identifier.length==2){
-            if(e.ctrlKey && key=='c'){
-                send=true;
-                invoke('write_pty',{id,data:'\x03'})
-                return
-            }
-            const keyCode = key?.charCodeAt(0)
-            
-            if(keyCode < 255 || composingEnd){
-                if(composingEnd){
-                    invoke('write_pty',{id,data:composedChar})
-                    composingEnd=false;
-                    console.log(1)
-                    if(keyCode < 255){
-                        invoke('write_pty',{id,data:key})
-                    }
-                    send=true;
-                }else{
-                    invoke('write_pty',{id,data:key})
-                    send=true;
-                    console.log(2)
-                }
-            }
-        }
-    }
-    
-    function keyup(e:KeyboardEvent){
-        const key = e.key;
-        const identifier = e.keyIdentifier.split("U+");
-        console.log('up ',key,composedChar,composingEnd)
-        if(send){
-            send=false;
-            return;
-        }
-        if(key =="Backspace"){
-            return
-        }
-        if(key =="Escape"){
-            return
-        }
-        if(key =="Enter"){
-            invoke('write_pty',{id,data:'\x0D'})
-            cmd=''
-            send=true
-            return
-        }
-        
-        if(identifier.length==2){
-            if(e.ctrlKey && key=='c'){
-                invoke('write_pty',{id,data:'\x03'})
-                return
-            }
-            const keyCode = key?.charCodeAt(0)
-         
-            if(keyCode < 255 || composingEnd){
-                if(composingEnd){
-                    invoke('write_pty',{id,data:composedChar})
-                    composingEnd=false;
-                    console.log(1)
-                    if(keyCode < 255){
-                        invoke('write_pty',{id,data:key})
-                    }
-                }else{
-                    invoke('write_pty',{id,data:key})
-                }
-            }
-        }
-    }
     /*
     function keydown(e:KeyboardEvent){
         
