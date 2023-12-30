@@ -65,6 +65,7 @@
             }else{
                 if(!e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey)
                 invoke('write_pty',{id,data:key})
+                //term.writeln('\x1b[1;31m' + 'User:'+ '\x1b[37m' + 'my name');
             }
             return true
         })
@@ -81,7 +82,9 @@
                 _composingStart=false;
             }
         });
-        
+        term.onResize((evt:any)=>{
+            invoke('resize_pty',{id,size:{rows:evt.rows,cols:evt.cols,pixel_width:0,pixel_height:0}})
+        });
         unlisten = await listen('EVENTS:PTY:STDOUT', (event:any) => {
             id = event.payload.id
             const bytes = event.payload.bytes
@@ -97,7 +100,7 @@
     }
     function resize(){
         fitAddon.fit();
-        invoke('resize_pty',{id,size:{rows:120,cols:100,pixel_width:1024,pixel_height:1024}})
+       // invoke('resize_pty',{id,size:{rows:120,cols:100,pixel_width:1024,pixel_height:1024}})
     }
     async function close(){
         invoke('kill_pty',{id})
@@ -241,12 +244,13 @@
     }
     
     
-    window.onresize =resize
+   window.onresize =resize
     onMount(()=>{
-        zsh()
+       zsh()
     })
 </script>
-<body class="h-screen w-screen bg-gray-800">
+<div class="container max-w-screen-xl mx-auto">
+    <header>
     <div class="flex items-center space-x-1 rtl:space-x-reverse sm:pe-4">
         <button on:click={zsh} type="button" class="p-2 text-gray-500 rounded cursor-pointer hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-600">
             <svg class="w-4 h-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 12 20">
@@ -260,12 +264,57 @@
              </svg>
             <span class="sr-only">Attach file</span>
         </button>
-        
     </div>
-    <div class="overflow-y-auto">
-      <div id="terminal"  class="h-full"/>
-    </div>
-    <footer class="bg-white rounded-lg shadow m-4 dark:bg-gray-800">
-        <input bind:value={cmd}  on:keydown={keydown} on:input={onInput}   class="w-full">
+    </header>
+    <main>
+      <div id="terminal" />
+    </main>
+    <footer class=" h-96 shadow m-4 dark:bg-gray-800">
+        <br>
+        <input bind:value={cmd}  on:keydown={keydown} on:input={(e)=>onInput(e)}   class="w-full">
     </footer>
-  </body>
+</div>
+  <style>
+    .container {
+        display: flex;
+        flex-direction: column;
+        height: 100vh; /* 화면 전체 높이로 설정하거나 필요에 맞게 조절하세요 */
+        
+        margin-left: 0px;        
+        margin-right: 0px;        
+        padding-left: 0px; /* 원하는 여백 추가 */
+        padding-right: 0px; /* 원하는 여백 추가 */
+        max-width: 100%; /* 컨테이너의 최대 너비를 100%로 설정 */
+        margin: 0 auto; /* 중앙 정렬을 위해 margin을 auto로 설정 */
+    }
+
+    header {
+        flex: 0 0 auto; /* 크기를 고정시키기 위해 flex-grow와 flex-shrink를 0으로 설정 */
+        background-color: #ccc; /* 배경색은 필요에 따라 변경 가능 */
+    }
+    footer {
+        flex: 0 0 auto; /* 크기를 고정시키기 위해 flex-grow와 flex-shrink를 0으로 설정 */
+        padding-left: 0px; /* 원하는 여백 추가 */
+        padding-right: 0px; /* 원하는 여백 추가 */
+        max-height: 100px;
+        width: 100%;
+        margin: 0 auto
+    }
+
+    main {
+        flex: 1; /* 남은 공간을 모두 차지하도록 설정 */
+        overflow-y: auto; /* 내용이 넘칠 경우 스크롤바 표시 */
+        min-height: 0; /* 내용이 적어도 최소 높이 유지 */
+        
+      
+    }
+    #terminal {
+      overflow: auto;
+      background: #000;
+      height: -webkit-calc(100% - (132px));
+      height: -moz-calc(100% - (132px));
+      height: calc(100vh - (132px));
+      font-size: 10px;
+      line-height: 17px; /* <- initial line-height */
+    }
+</style>
