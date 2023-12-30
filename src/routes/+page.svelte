@@ -31,7 +31,7 @@
         term.open(document.getElementById('terminal')) 
         fitAddon.fit();
         let _composingStart = false;
-        let fromOndata= false;
+        let _fromOndata= false;
     
         term.element.addEventListener('input',(e:InputEvent)=>{
             const key = e.data;
@@ -53,15 +53,15 @@
                     invoke('write_pty',{id,data:'\u001b[3~'+key+'\u001b[D'})
                     
                 }
-                fromOndata=true
+                _fromOndata=true
             }
             return true
         })
         term.element.addEventListener('keydown',(e:KeyboardEvent)=>{  
             const key = e.key;
             console.log('down',key,'compStart',_composingStart)
-            if(fromOndata){
-                fromOndata=false;
+            if(_fromOndata){
+                _fromOndata=false;
             }else{
                 if(!e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey)
                 invoke('write_pty',{id,data:key})
@@ -69,7 +69,7 @@
             return true
         })
         term.onData((data:any) => {
-            fromOndata=true
+            _fromOndata=true
             const keyCode = data.charCodeAt(0)
             console.log('---- ondata ',data,'compStart',_composingStart,keyCode);
             if( (keyCode < 12593 || keyCode > 12643) && (keyCode < 44032 || keyCode > 55203) ){
@@ -103,11 +103,57 @@
         invoke('kill_pty',{id})
         unlisten();
     }
-    /*
+    
+
+
+
+    let composingStart = false;
+    let fromOnData = false;
+    function onInput(e:InputEvent){
+        const key = e.data;
+        const inputType =e.inputType;
+        
+        if(key !==null){
+            const keyCode = key?.charCodeAt(0)
+            var curpos=false
+            if( (keyCode < 12593 || keyCode > 12643) && (keyCode < 44032 || keyCode > 55203) ){
+                curpos = false
+            }else{
+                curpos = true
+            }
+            console.log('input',inputType,key,composingStart,curpos)
+            if( inputType==='insertText' ){ 
+                if(composingStart){ 
+                    invoke('write_pty',{id,data:'\u001b[C'+key+'\u001b[D'})
+                    console.log('pos1')
+                }else{
+                    if(curpos){
+                        invoke('write_pty',{id,data:key+'\u001b[D'})
+                        composingStart=true
+                        console.log('pos2')
+                    }else{
+                        invoke('write_pty',{id,data:key})
+                        composingStart=false
+                        console.log('pos3')
+                    }
+                }
+            }else{
+                invoke('write_pty',{id,data:'\u001b[3~'+key+'\u001b[D'})
+                console.log('pos4')
+            }
+           fromOnData=true
+        }    
+    }
+    let cmd:any='';
     function keydown(e:KeyboardEvent){
         
         const key = e.key;
-        const identifier = e.keyIdentifier.split("U+");
+        console.log('keydown',key)
+        if(key =="Enter"){
+            invoke('write_pty',{id,data:'\x0D'})
+            cmd=''
+            return
+        }
         if(key =="Backspace"){
             invoke('write_pty',{id,data:'\x08'})
             return
@@ -116,69 +162,85 @@
             invoke('write_pty',{id,data:'\x1B'})
             return
         }
-        if(key =="Enter"){
-            invoke('write_pty',{id,data:'\x0D'})
-            cmd=''
+        if(key =="Delete"){
+            invoke('write_pty',{id,data:'\x08'})
             return
         }
-        if(identifier.length==2){
-            if(e.ctrlKey && key=='c'){
+        if(key =="Tab"){
+            invoke('write_pty',{id,data:'\t'})
+            return
+        }
+        if(key =="ArrowUp"){
+            ansiEscapes.cursorUp(1)
+            invoke('write_pty',{id,data:ansiEscapes.cursorUp(1).replace('[1','[')})
+            return
+        }
+        if(key =="ArrowDown"){
+            ansiEscapes.cursorUp(1)
+            invoke('write_pty',{id,data:ansiEscapes.cursorDown(1).replace('[1','[')})
+            return
+        }
+        if(key =="ArrowLeft"){
+            ansiEscapes.cursorUp(1)
+            invoke('write_pty',{id,data:ansiEscapes.cursorBackward(1).replace('[1','[')})
+            return
+        }
+        if(key =="ArrowRight"){
+            ansiEscapes.cursorUp(1)
+            invoke('write_pty',{id,data:ansiEscapes.cursorForward(1).replace('[1','[')})
+            return
+        }
+        if(e.ctrlKey){
+            if( key=='c'){
                 invoke('write_pty',{id,data:'\x03'})
                 return
             }
-            const keyCode = key?.charCodeAt(0)
-         //   console.log(key,keyCode,composedChar,composingEnd)
-            if(keyCode < 255 || composingEnd){
-                if(composingEnd){
-                    invoke('write_pty',{id,data:composedChar})
-                    composingEnd=false;
-                    console.log(1)
-                    if(keyCode < 255){
-                        invoke('write_pty',{id,data:key})
-                    }
-                }else{
-                    invoke('write_pty',{id,data:key})
-                    console.log(2)
-                }
+            if(key =='u' || key=='w'){
+                invoke('write_pty',{id,data:'\x15'})
+                cmd=''
+                return
             }
+            if(key =='l'){
+                invoke('write_pty',{id,data:'\f'})
+                cmd=''
+                return
+            }
+            if(key =='e'){
+                invoke('write_pty',{id,data:'\x05'})
+                cmd=''
+                return
+            }
+            if(key =='d'){
+                invoke('write_pty',{id,data:'\x04'})
+                cmd=''
+                return
+            }
+            if(key =='a'){
+                invoke('write_pty',{id,data:'\x01'})
+                cmd=''
+                return
+            }
+            if(key =='k'){
+                invoke('write_pty',{id,data:'\x0b'})
+                cmd=''
+                return
+            }
+            if(key =='z'){
+                invoke('write_pty',{id,data:'\x1a'})
+                cmd=''
+                return
+            }
+        }
+        
+        if(fromOnData){
+            fromOnData=false;
+        }else{
+            if(!e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey)
+            invoke('write_pty',{id,data:key})
         }
     }
-    function keyup(e:KeyboardEvent){
-        const key = e.key;
-        const identifier = e.keyIdentifier.split("U+");
-        if(key =="Backspace"){
-            return
-        }
-        if(key =="Escape"){
-            return
-        }
-        if(key =="Enter"){
-            invoke('write_pty',{id,data:'\x0D'})
-            cmd=''
-            return
-        }
-        if(identifier.length==2){
-            if(e.ctrlKey && key=='c'){
-                invoke('write_pty',{id,data:'\x03'})
-                return
-            }
-            const keyCode = key?.charCodeAt(0)
-         //   console.log(key,keyCode,composedChar,composingEnd)
-            if(keyCode < 255 || composingEnd){
-                if(composingEnd){
-                    invoke('write_pty',{id,data:composedChar})
-                    composingEnd=false;
-                    console.log(1)
-                    if(keyCode < 255){
-                        invoke('write_pty',{id,data:key})
-                    }
-                }else{
-                    invoke('write_pty',{id,data:key})
-                }
-            }
-        }
-    }*/
-    let cmd:any;
+    
+    
     window.onresize =resize
     onMount(()=>{
         zsh()
@@ -203,7 +265,7 @@
     <div class="overflow-y-auto">
       <div id="terminal"  class="h-full"/>
     </div>
-    <!--footer class="bg-white rounded-lg shadow m-4 dark:bg-gray-800">
-        <input bind:value={cmd} on:keyup={keyup} on:input={onInput}    class="w-full">
-    </footer-->
+    <footer class="bg-white rounded-lg shadow m-4 dark:bg-gray-800">
+        <input bind:value={cmd}  on:keydown={keydown} on:input={onInput}   class="w-full">
+    </footer>
   </body>
