@@ -30,7 +30,7 @@
         term.options={"fontSize":12}
         term.open(document.getElementById('terminal')) 
         fitAddon.fit();
-        let composingStart = false;
+        let _composingStart = false;
         let fromOndata= false;
     
         term.element.addEventListener('input',(e:InputEvent)=>{
@@ -38,21 +38,20 @@
             const inputType =e.inputType;
             if(key !==null){
                 const keyCode = key.charCodeAt(0);
-                console.log(inputType,"key ",key,'start',composingStart,keyCode)
+                console.log(inputType,"key ",key,'start',_composingStart,keyCode)
                 if( (keyCode < 12593 || keyCode > 12643) && (keyCode < 44032 || keyCode > 55203) ){
                     return
                 }
                 if(inputType ==='insertText'){  
-                    if(composingStart){
-                        invoke('write_pty',{id,data:'\u001b[C'})    
+                    if(_composingStart){
+                        invoke('write_pty',{id,data:'\u001b[C'+key+'\u001b[D'})
+                    }else{
+                        invoke('write_pty',{id,data:key+'\u001b[D'})
                     }
-                    invoke('write_pty',{id,data:key})    
-                    invoke('write_pty',{id,data:'\u001b[D'})
-                    composingStart=true
+                    _composingStart=true
                 }else{
-                    invoke('write_pty',{id,data:'\u001b[3~'})
-                    invoke('write_pty',{id,data:key})
-                    invoke('write_pty',{id,data:'\u001b[D'})
+                    invoke('write_pty',{id,data:'\u001b[3~'+key+'\u001b[D'})
+                    
                 }
                 fromOndata=true
             }
@@ -60,7 +59,7 @@
         })
         term.element.addEventListener('keydown',(e:KeyboardEvent)=>{  
             const key = e.key;
-            console.log('down',key,'compStart',composingStart)
+            console.log('down',key,'compStart',_composingStart)
             if(fromOndata){
                 fromOndata=false;
             }else{
@@ -72,13 +71,14 @@
         term.onData((data:any) => {
             fromOndata=true
             const keyCode = data.charCodeAt(0)
-            console.log('---- ondata ',data,'compStart',composingStart,keyCode);
+            console.log('---- ondata ',data,'compStart',_composingStart,keyCode);
             if( (keyCode < 12593 || keyCode > 12643) && (keyCode < 44032 || keyCode > 55203) ){
-                if(composingStart){
-                    invoke('write_pty',{id,data:'\u001b[C'})
+                if(_composingStart){
+                    invoke('write_pty',{id,data:'\u001b[C'+data})
+                }else{
+                    invoke('write_pty',{id,data})
                 }
-                invoke('write_pty',{id,data})
-                composingStart=false;
+                _composingStart=false;
             }
         });
         
@@ -99,17 +99,10 @@
         fitAddon.fit();
         invoke('resize_pty',{id,size:{rows:120,cols:100,pixel_width:1024,pixel_height:1024}})
     }
-    async function ls(){
-        
-        invoke('write_pty',{id,data:'ls\n'})
-        unlisten();
-    }
     async function close(){
         invoke('kill_pty',{id})
         unlisten();
     }
-    
-    
     /*
     function keydown(e:KeyboardEvent){
         
