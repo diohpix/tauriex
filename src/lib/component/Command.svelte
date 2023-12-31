@@ -5,6 +5,7 @@
     let composingStart = false;
     let compStartKeydownCnt=0;
     let cmd:any='';
+    let inputBox:HTMLInputElement;
     function invoke(cmd:string,msg:Object){
         dispatch('invoke',{cmd:cmd,msg:msg});
     }
@@ -20,7 +21,7 @@
                 }else{
                     isKR = true
                 }
-                console.log('input',inputType,key,composingStart,isKR,keyCode)
+           //     console.log('input',inputType,key,composingStart,isKR,keyCode)
                 if( inputType==='insertText' ){
 //                    console.log('bf ketcnt',compStartKeydownCnt)
                     if(keyCode >=12593 && keyCode <=12643){
@@ -58,7 +59,17 @@
             }    
         }
     }
-    
+    function beforeInput(e:InputEvent){
+        if(e.data !==null && e.data.indexOf("…")>-1){
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            setTimeout(()=>{
+                inputBox.selectionStart=255;
+                inputBox.selectionEnd=255;
+            },0)
+        }
+        
+    }
     function keydown(e:KeyboardEvent){
         const key = e.key;
         if(key =="Backspace" || key =="Delete"){
@@ -71,7 +82,6 @@
                 }
             }else{
                 invoke('write_pty','\x7f')    
-                
             }
             return
         }
@@ -158,4 +168,4 @@
     }
 </script>
 
-<input type="text" bind:value={cmd} autocomplete="off"  on:keydown={keydown} on:input={(e)=>onInput(e)}   class="w-full">
+<input bind:this={inputBox} type="text" bind:value={cmd} on:beforeinput={beforeInput}  on:keydown={keydown} on:input={(e)=>onInput(e)}   class="w-full">
