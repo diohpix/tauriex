@@ -57,7 +57,7 @@
     }
     
     function handleInvoke(e:CustomEvent){
-        console.log(e);
+     //   console.log(e);
         invoke(e.detail.cmd,e.detail.data);
     }
     function handleMultiInvoke(e:CustomEvent){

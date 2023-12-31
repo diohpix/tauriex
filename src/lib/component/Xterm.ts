@@ -24,7 +24,7 @@ class Xterm {
         
         this.term.loadAddon(this.fitAddon);
         this.term.loadAddon(new WebglAddon());
-        this.term.options={"fontSize":12}
+        this.term.options={fontSize:12,logLevel:"info"}
         this.term.open(element) 
         this.fitAddon.fit();
         

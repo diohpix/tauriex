@@ -3,8 +3,7 @@
     import ansiEscapes from 'ansi-escapes';
     const dispatch = createEventDispatcher()
     let composingStart = false;
-    let deleteKey = false;
-    let fromOnData = false;
+    let compStartKeydownCnt=0;
     let cmd:any='';
     function invoke(cmd:string,msg:Object){
         dispatch('invoke',{cmd:cmd,msg:msg});
@@ -13,22 +12,31 @@
         if(e instanceof InputEvent){
             const key = e.data;
             const inputType =e.inputType;
-            
             if(key !==null){
                 const keyCode = key?.charCodeAt(0)
-                var curpos=false
+                var isKR=false
                 if( (keyCode < 12593 || keyCode > 12643) && (keyCode < 44032 || keyCode > 55203) ){
-                    curpos = false
+                    isKR = false
                 }else{
-                    curpos = true
+                    isKR = true
                 }
-                console.log('input',inputType,key,composingStart,curpos)
-                if( inputType==='insertText' ){ 
+                console.log('input',inputType,key,composingStart,isKR,keyCode)
+                if( inputType==='insertText' ){
+                    console.log('bf ketcnt',compStartKeydownCnt)
+                    if(compStartKeydownCnt > 1){
+                        compStartKeydownCnt=1;
+                    }else{
+                        compStartKeydownCnt=0;
+                    }
                     if(composingStart){ 
                         invoke('write_pty','\u001b[C'+key+'\u001b[D')
+                        if(!isKR){
+                            composingStart=false;
+                            invoke('write_pty','\u001b[C')
+                        }
                         console.log('pos1')
                     }else{
-                        if(curpos){
+                        if(isKR){
                             invoke('write_pty',key+'\u001b[D')
                             composingStart=true
                             console.log('pos2')
@@ -38,34 +46,34 @@
                             console.log('pos3')
                         }
                     }
+                    
                 }else{
-                    invoke('write_pty','\u001b[3~'+key+'\u001b[D')
-                    console.log('pos4',deleteKey)
+                    if(isKR){
+                        invoke('write_pty','\u001b[3~'+key+'\u001b[D')
+                    }else{
+                        invoke('write_pty',key)
+                    }     
                 }
-                fromOnData=true
             }    
         }
     }
     
     function keydown(e:KeyboardEvent){
-        
         const key = e.key;
-        console.log('keydown',key)
         if(key =="Backspace" || key =="Delete"){
-            console.log('compo',composingStart)
             if(composingStart){
-                if(deleteKey){
-                    invoke('write_pty','\u001b[3~')
-                    composingStart=false
+                compStartKeydownCnt--;
+                console.log('keydown',key,compStartKeydownCnt)
+                if(compStartKeydownCnt==0){
+                    invoke('write_pty','\u001b[3~')  
+                    composingStart=false;
                 }
             }else{
-                invoke('write_pty','\x08')
+                invoke('write_pty','\x7f')    
+                
             }
-            deleteKey=true
             return
         }
-        
-        deleteKey=false
         if(key =="Enter"){
             invoke('write_pty','\x0D')
             cmd=''
@@ -140,13 +148,13 @@
                 return
             }
         }
-        if(fromOnData){
-            fromOnData=false;
-        }else{
-          //  if(!e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey)
-         //   invoke('write_pty',key)
-          //  fromOnData=true
+        if(composingStart){
+            if(!e.altKey && !e.ctrlKey && !e.shiftKey && !e.metaKey){
+                compStartKeydownCnt++;
+            }
         }
+        console.log('keydown',key,compStartKeydownCnt)
     }
 </script>
+composingStart {composingStart}
 <input bind:value={cmd} autocomplete="off"  on:keydown={keydown} on:input={(e)=>onInput(e)}   class="w-full">
