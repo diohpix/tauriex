@@ -22,11 +22,11 @@
                 }
                 console.log('input',inputType,key,composingStart,isKR,keyCode)
                 if( inputType==='insertText' ){
-                    console.log('bf ketcnt',compStartKeydownCnt)
-                    if(compStartKeydownCnt > 1){
-                        compStartKeydownCnt=1;
-                    }else{
+//                    console.log('bf ketcnt',compStartKeydownCnt)
+                    if(keyCode >=12593 && keyCode <=12643){
                         compStartKeydownCnt=0;
+                    }else{
+                        compStartKeydownCnt=1;
                     }
                     if(composingStart){ 
                         invoke('write_pty','\u001b[C'+key+'\u001b[D')
@@ -34,20 +34,21 @@
                             composingStart=false;
                             invoke('write_pty','\u001b[C')
                         }
-                        console.log('pos1')
+  //                      console.log('pos1')
                     }else{
                         if(isKR){
                             invoke('write_pty',key+'\u001b[D')
                             composingStart=true
-                            console.log('pos2')
+//                            console.log('pos2')
                         }else{
                             invoke('write_pty',key)
                             composingStart=false
-                            console.log('pos3')
+ //                           console.log('pos3')
                         }
                     }
                     
                 }else{
+                    
                     if(isKR){
                         invoke('write_pty','\u001b[3~'+key+'\u001b[D')
                     }else{
@@ -63,7 +64,7 @@
         if(key =="Backspace" || key =="Delete"){
             if(composingStart){
                 compStartKeydownCnt--;
-                console.log('keydown',key,compStartKeydownCnt)
+                //console.log('keydown',key,compStartKeydownCnt)
                 if(compStartKeydownCnt==0){
                     invoke('write_pty','\u001b[3~')  
                     composingStart=false;
@@ -153,8 +154,8 @@
                 compStartKeydownCnt++;
             }
         }
-        console.log('keydown',key,compStartKeydownCnt)
+        //console.log('keydown',key,compStartKeydownCnt)
     }
 </script>
-composingStart {composingStart}
-<input bind:value={cmd} autocomplete="off"  on:keydown={keydown} on:input={(e)=>onInput(e)}   class="w-full">
+
+<input type="text" bind:value={cmd} autocomplete="off"  on:keydown={keydown} on:input={(e)=>onInput(e)}   class="w-full">
