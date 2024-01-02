@@ -19,6 +19,17 @@
         "scope":[
           {"name":"ssh","cmd":"ssh","args":[{ "validator": "\\S+" }]}
         ]
+      },
+      "window": {
+        "all": false,
+        "close": true,
+        "hide": true,
+        "show": true,
+        "maximize": true,
+        "minimize": true,
+        "unmaximize": true,
+        "unminimize": true,
+        "startDragging": true
       }
     },
     "bundle": {
@@ -63,7 +74,7 @@
     "windows": [
       {
         "fullscreen": false,
-        
+        "decorations": false,
         "resizable": true,
         "title": "myTerm"
         
