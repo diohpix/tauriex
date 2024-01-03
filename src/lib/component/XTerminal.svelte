@@ -1,10 +1,10 @@
 <script lang="ts">
-	import { createEventDispatcher, onMount, tick } from 'svelte';
+	import { createEventDispatcher, onDestroy, onMount, tick } from 'svelte';
     import {Xterm} from './Xterm'
     import 'xterm/css/xterm.css'
     let termdiv:HTMLElement;
     let xterm:any;
-    export let ID=null;
+    export let ID:any=null;
     const dispatch = createEventDispatcher()
     export  function SetId(id:string){
         ID=id;
@@ -19,10 +19,14 @@
         console.log('mount terminal')
         await tick();
         setTimeout( ()=>{
-            termdiv.focus();
+            
             resize()
         },100)
     })   
+    onDestroy(()=>{
+        
+        dispatch('invokke',{cmd:'kill_pty',data:ID})
+    })
     function resize(){
         console.log('resize')
         

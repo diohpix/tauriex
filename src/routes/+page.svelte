@@ -24,6 +24,7 @@
                 term =_term.ref;
                 selectedTab=listTerm.length-1;
                 PROECESS_NAME[listTerm.length-1]='zsh'
+                term.setMessage('\x1b]2;foo\x9c')
             }
             const bytes = event.payload.bytes
             term.setMessage(bytes)

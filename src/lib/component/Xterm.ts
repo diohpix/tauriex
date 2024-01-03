@@ -25,13 +25,19 @@ class Xterm {
 		this.term.loadAddon(new WebglAddon());
 		this.term.options = {
 			fontSize: 12,
-			logLevel: 'info',
+			logLevel: 'debug',
 			windowsMode: false,
 			windowOptions: { popTitle: true, pushTitle: true, getWinTitle: true, getIconTitle: true }
 		};
 		this.term.open(element);
+		this.term.focus();
 		this.fitAddon.fit();
-
+		/*const resizeObserver = new ResizeObserver(entries => {
+			//if (autoResize) {
+			  this.fitAddon.fit();
+			//}
+		  });
+		  resizeObserver.observe(element);*/
 		this.term.element?.addEventListener('input', (e: Event) => {
 			if (e instanceof InputEvent) {
 				const key = e.data;
