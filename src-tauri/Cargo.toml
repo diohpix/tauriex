@@ -19,9 +19,10 @@ serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 tauri = { version = "1.5.3", features = [ "api-all"] }
 tokio = { version = "1.24", features = ["macros", "rt", "sync", "time"] }
-cuid = { version = "1.2.0" }
+
 portable-pty = { git = "https://github.com/wez/wezterm.git", features = ["serde_support"] }
 phf = { version = "0.11.1", features = ["macros"] }
+cuid2 = "0.1.2"
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem and the built-in dev server is disabled.

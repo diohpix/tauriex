@@ -44,7 +44,7 @@
 	    name: '12',
 	    command: 'zsh',
 	    args:[],
-	    env: {'TERM':'xterm-256color','LANG':'ko_KR.UTF-8'},
+	    env: {'TERM':'xterm-color','LANG':'ko_KR.UTF-8'},
 	    icon: ''
        }
        var xt = XTerminal;

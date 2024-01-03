@@ -23,7 +23,12 @@ class Xterm {
 
 		this.term.loadAddon(this.fitAddon);
 		this.term.loadAddon(new WebglAddon());
-		this.term.options = { fontSize: 12, logLevel: 'info' };
+		this.term.options = {
+			fontSize: 12,
+			logLevel: 'info',
+			windowsMode: false,
+			windowOptions: { popTitle: true, pushTitle: true, getWinTitle: true, getIconTitle: true }
+		};
 		this.term.open(element);
 		this.fitAddon.fit();
 
@@ -82,7 +87,7 @@ class Xterm {
 		});
 
 		this.term.onTitleChange((e) => {
-			console.log('title change');
+			console.log('title change', e);
 		});
 	}
 	invoke(msg: Object) {

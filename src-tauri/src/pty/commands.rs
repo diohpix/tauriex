@@ -1,4 +1,4 @@
-use cuid::cuid;
+use cuid2;
 use portable_pty::{CommandBuilder, native_pty_system, PtySize};
 use tauri::{AppHandle, Manager, State};
 use tokio::sync::mpsc::channel;
@@ -16,8 +16,8 @@ pub async fn spawn_pty(
     state: State<'_, JexpeState>,
     shell: SystemShell,
 ) -> Result<(), String> {
-    let id = cuid()
-        .map_err(|_| "Failed to generate cuid.".to_string())?;
+    let id = cuid2::create_id();
+        
 
     // Establish our new pty for the given size
     let pty_system = native_pty_system();
