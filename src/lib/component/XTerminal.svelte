@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { createEventDispatcher, onMount } from 'svelte';
+	import { createEventDispatcher, onMount, tick } from 'svelte';
     import {Xterm} from './Xterm'
     import 'xterm/css/xterm.css'
     let termdiv:HTMLElement;
@@ -16,10 +16,14 @@
         xterm.setMessage(msg);
     }
     onMount(()=>{
-        
+        console.log('mount terminal')
+        termdiv.focus();
+        resize()
     })   
-    function resize(){
-        xterm.fitAddon.fit();
+    async function resize(){
+        console.log('resize')
+        await tick();
+    //    xterm.fitAddon.fit();
        // invoke('resize_pty',{id,size:{rows:120,cols:100,pixel_width:1024,pixel_height:1024}})
     }
     window.onresize=resize
@@ -30,6 +34,7 @@
     .term {
       overflow: auto;
       background: #000;
+      width: 100%;
       height: -webkit-calc(100% - (132px));
       height: -moz-calc(100% - (132px));
       height: calc(100vh - (132px));
