@@ -15,16 +15,19 @@
     export  function setMessage(msg:string){
         xterm.setMessage(msg);
     }
-    onMount(()=>{
+    onMount( async ()=>{
         console.log('mount terminal')
-        termdiv.focus();
-        resize()
-    })   
-    async function resize(){
-        console.log('resize')
         await tick();
-    //    xterm.fitAddon.fit();
-       // invoke('resize_pty',{id,size:{rows:120,cols:100,pixel_width:1024,pixel_height:1024}})
+        setTimeout( ()=>{
+            termdiv.focus();
+            resize()
+        },100)
+    })   
+    function resize(){
+        console.log('resize')
+        
+        if(xterm!==undefined)
+        xterm.fitAddon.fit();
     }
     window.onresize=resize
 </script>
