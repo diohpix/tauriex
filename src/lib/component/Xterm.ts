@@ -45,7 +45,9 @@ class Xterm {
 						}
 						_composingStart = true;
 					} else {
-						this.invoke('\u001b[3~' + key + '\u001b[D');
+						if (inputType !== 'insertFromPaste') {
+							this.invoke('\u001b[3~' + key + '\u001b[D');
+						}
 					}
 					_fromOndata = true;
 				}
@@ -65,7 +67,7 @@ class Xterm {
 		this.term.onData((data: any) => {
 			_fromOndata = true;
 			const keyCode = data.charCodeAt(0);
-			console.log('---- ondata ', data, 'compStart', _composingStart, keyCode);
+			console.log('ondata ', data, 'compStart', _composingStart, keyCode);
 			if ((keyCode < 12593 || keyCode > 12643) && (keyCode < 44032 || keyCode > 55203)) {
 				if (_composingStart) {
 					this.invoke('\u001b[C' + data);
@@ -74,6 +76,13 @@ class Xterm {
 				}
 				_composingStart = false;
 			}
+		});
+		this.term.onResize((evt: any) => {
+			this.resize(evt);
+		});
+
+		this.term.onTitleChange((e) => {
+			console.log('title change');
 		});
 	}
 	invoke(msg: Object) {

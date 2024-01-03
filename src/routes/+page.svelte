@@ -11,6 +11,7 @@
     let listTerm: any[]=[];
     let unlisten:Function;
     let PROCESS:any={};
+    let PROECESS_NAME:any={};
     onMount(async ()=>{
         zsh()
         unlisten = await listen('EVENTS:PTY:STDOUT', (event:any) => {
@@ -22,6 +23,7 @@
                 PROCESS[id] = _term.ref
                 term =_term.ref;
                 selectedTab=listTerm.length-1;
+                PROECESS_NAME[listTerm.length-1]='zsh'
             }
             const bytes = event.payload.bytes
             term.setMessage(bytes)
@@ -99,7 +101,7 @@
 
 <div role="tablist" class="tabs tabs-bordered">
   {#each listTerm as term ,i }
-  <input type="radio" name="my_tabs_i" checked={i==selectedTab} role="tab" class="tab" aria-label="Tab {i}" />
+  <input type="radio" name="my_tabs_i" checked={i==selectedTab} role="tab" class="tab" aria-label="{PROECESS_NAME[i]}" />
   <div role="tabpanel" class="tab-content w-screen">
       <svelte:component this={term} bind:this={term.ref} on:invoke={handleInvoke} /> 
   </div>
