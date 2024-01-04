@@ -4,14 +4,14 @@
     import 'xterm/css/xterm.css'
     let termdiv:HTMLElement;
     let xterm:any;
-    export let ID:any=null;
+    export let shell:any=null;
     const dispatch = createEventDispatcher()
-    export  function SetId(id:string){
-        ID=id;
-        xterm = new Xterm(id,termdiv,(cmd:string,obj:Object)=>{
+    export  function setShell(shell:any){
+        shell=shell;
+        xterm = new Xterm(shell.ptyId,termdiv,(cmd:string,obj:Object)=>{
             dispatch('invoke',{cmd:cmd,data:obj}); 
         },(title:string)=>{
-            dispatch('changeTitle',title)
+            dispatch('changeTitle',{msg:title,shell:shell})
         });
     }
     export  function setMessage(msg:string){
@@ -27,7 +27,7 @@
     })   
     onDestroy(()=>{
         
-        dispatch('invoke',{cmd:'kill_pty',data:ID})
+        dispatch('invoke',{cmd:'kill_pty',data:shell.ptyId})
     })
     function resize(){
         console.log('resize')
@@ -37,7 +37,10 @@
     }
     window.onresize=resize
 </script>
+<input type="radio" name="my_tabs_i" checked={true} role="tab" class="tab" aria-label="Tab1" />
+<div role="tabpanel" class="tab-content w-screen">
 <div class="term" bind:this={termdiv} on:resize={resize} />
+</div>
 <style>
     
     .term {

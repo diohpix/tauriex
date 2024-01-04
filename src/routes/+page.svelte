@@ -3,32 +3,54 @@
     import { invoke } from '@tauri-apps/api/tauri'
     import { Command } from '@tauri-apps/api/shell'
     import { emit, listen } from '@tauri-apps/api/event'
-	import { onDestroy, onMount } from "svelte";
+	import { onDestroy, onMount, tick } from "svelte";
     import XTerminal from '../lib/component/XTerminal.svelte'
     import XTemCommand from '../lib/component/Command.svelte'
     import "tailwindcss/tailwind.css";
     import { appWindow } from '@tauri-apps/api/window'
+	import { list } from "postcss";
     let listTerm: any[]=[];
     let unlisten:Function;
     let PROCESS:any={};
     let PROECESS_NAME:any={};
+    let job:any[]=[];
     onMount(async ()=>{
         zsh()
-        unlisten = await listen('EVENTS:PTY:STDOUT', (event:any) => {
+        unlisten = await listen('EVENTS:PTY:STDOUT',async (event:any) => {
+          console.log(event)
+            const clientId = event.payload.clientId
             const id = event.payload.id
-            let term = PROCESS[id];
-            if(term==null){
-                var _term = listTerm.filter(t=>t.ID==null)[0];
-                _term.ref.SetId(id)
-                PROCESS[id] = _term.ref
-                term =_term.ref;
-                selectedTab=listTerm.length-1;
-                PROECESS_NAME[listTerm.length-1]='zsh'
-                //term.setMessage('\x1b]2;foo\x9c')
-                //term.setMessage([27,91,73])
-            }
             const bytes = event.payload.bytes
-            term.setMessage(bytes)
+            const j = job.pop();
+            let term = PROCESS[id];
+            if(j!==undefined && j.id == clientId){//새로운 콘솔
+                /*var xt = XTerminal;
+                listTerm.push(xt);
+                listTerm = listTerm;
+                await tick();
+                var _term = listTerm[listTerm.length-1];
+                console.log('b',_term)
+                j.ptyId= id;
+                _term.ref.setShell(j);
+                
+                PROCESS[id] = _term.ref
+                selectedTab=listTerm.length-1;
+                PROECESS_NAME[listTerm.length-1]='zsh'*/
+                const a = new XTerminal({
+                  target:document.querySelector("#dd")
+                })
+                a.$on('invoke',handleInvoke);
+                j.ptyId=id;
+                a.setShell(j)
+                
+                a.setMessage(bytes)
+                console.log(a)
+                PROCESS[id] = a
+            }else{
+              term.setMessage(bytes)
+            }
+            
+            
         })
         document?.getElementById('titlebar-minimize')?.addEventListener('click', () => appWindow.minimize())
         document?.getElementById('titlebar-maximize')?.addEventListener('click', () => appWindow.toggleMaximize())
@@ -42,16 +64,15 @@
     
     async function zsh(){
       let shell = {
-	    id: '123423423',
-	    name: '12',
-	    command: 'zsh',
-	    args:[],
-	    env: {'TERM':'xterm-256color','LANG':'ko_KR.UTF-8','TERM_PROGRAM_VERSION':"447"},
-	    icon: ''
+	      id: ''+Date.now(),
+	      name: '12',
+	      command: 'zsh',
+	      args:[],
+	      env: {'TERM':'xterm-256color','LANG':'ko_KR.UTF-8','TERM_PROGRAM_VERSION':"447"},
+	      icon: ''
        }
-       var xt = XTerminal;
-       listTerm.push(xt);
-       listTerm = listTerm
+       job.push(shell);
+       
        var a= await invoke('spawn_pty',{shell});
        console.log('---------------shell---------------')
        
@@ -66,6 +87,7 @@
     }
     function changeTitle(e:any){
       console.log('changeTitle',e)
+      PROECESS_NAME[0]=e.detail.msg
     }
     function handleInvoke(e:CustomEvent){
      //   console.log(e);
@@ -75,6 +97,9 @@
         for (const [key, value] of Object.entries(PROCESS)) {
             invoke(e.detail.cmd,{id:`${key}`,data:e.detail.msg});
         }
+    }
+    function f(o:any){
+      return o
     }
     let selectedTab=-1;
    
@@ -103,14 +128,17 @@
   </div>
 </div>
 
-<div role="tablist" class="tabs tabs-bordered">
+<div role="tablist" id="dd" class="tabs tabs-bordered">
+  <!--
   {#each listTerm as term ,i }
   <input type="radio" name="my_tabs_i" checked={i==selectedTab} role="tab" class="tab" aria-label="{PROECESS_NAME[i]}" />
   <div role="tabpanel" class="tab-content w-screen">
       <svelte:component this={term} bind:this={term.ref} on:invoke={handleInvoke} on:changeTitle={changeTitle}/> 
   </div>
   {/each}
+-->
 </div>
+
 <XTemCommand on:invoke={handleMultiInvoke}/>
 
 
