@@ -10,6 +10,8 @@
         ID=id;
         xterm = new Xterm(id,termdiv,(cmd:string,obj:Object)=>{
             dispatch('invoke',{cmd:cmd,data:obj}); 
+        },(title:string)=>{
+            dispatch('changeTitle',title)
         });
     }
     export  function setMessage(msg:string){
@@ -25,7 +27,7 @@
     })   
     onDestroy(()=>{
         
-        dispatch('invokke',{cmd:'kill_pty',data:ID})
+        dispatch('invoke',{cmd:'kill_pty',data:ID})
     })
     function resize(){
         console.log('resize')

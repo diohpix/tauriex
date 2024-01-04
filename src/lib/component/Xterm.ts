@@ -1,16 +1,19 @@
 import { Terminal } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 import { WebglAddon } from 'xterm-addon-webgl';
+import { createEventDispatcher } from 'svelte';
 
 class Xterm {
 	term: Terminal;
 	fitAddon: FitAddon;
 	callback: Function;
+	titleChange: Function;
 	id: string = '';
-	constructor(id: string, element: HTMLElement, callback: Function) {
+	constructor(id: string, element: HTMLElement, callback: Function, callback2: Function) {
 		this.term = new Terminal({});
 		this.fitAddon = new FitAddon();
 		this.callback = callback;
+		this.titleChange = callback2;
 		this.id = id;
 		this.mount(element);
 	}
@@ -66,6 +69,7 @@ class Xterm {
 			return true;
 		});
 		this.term.element?.addEventListener('keydown', (e: KeyboardEvent) => {
+			console.log(this.term.buffer);
 			const key = e.key;
 			console.log('down', key, 'compStart', _composingStart);
 			if (_fromOndata) {
@@ -93,7 +97,7 @@ class Xterm {
 		});
 
 		this.term.onTitleChange((e) => {
-			console.log('title change', e);
+			this.titleChange(e);
 		});
 	}
 	invoke(msg: Object) {

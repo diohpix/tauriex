@@ -24,7 +24,8 @@
                 term =_term.ref;
                 selectedTab=listTerm.length-1;
                 PROECESS_NAME[listTerm.length-1]='zsh'
-                term.setMessage('\x1b]2;foo\x9c')
+                //term.setMessage('\x1b]2;foo\x9c')
+                //term.setMessage([27,91,73])
             }
             const bytes = event.payload.bytes
             term.setMessage(bytes)
@@ -45,7 +46,7 @@
 	    name: '12',
 	    command: 'zsh',
 	    args:[],
-	    env: {'TERM':'xterm-color','LANG':'ko_KR.UTF-8'},
+	    env: {'TERM':'xterm-256color','LANG':'ko_KR.UTF-8','TERM_PROGRAM_VERSION':"447"},
 	    icon: ''
        }
        var xt = XTerminal;
@@ -63,7 +64,9 @@
         PROCESS={}
         listTerm=[];
     }
-    
+    function changeTitle(e:any){
+      console.log('changeTitle',e)
+    }
     function handleInvoke(e:CustomEvent){
      //   console.log(e);
         invoke(e.detail.cmd,e.detail.data);
@@ -104,7 +107,7 @@
   {#each listTerm as term ,i }
   <input type="radio" name="my_tabs_i" checked={i==selectedTab} role="tab" class="tab" aria-label="{PROECESS_NAME[i]}" />
   <div role="tabpanel" class="tab-content w-screen">
-      <svelte:component this={term} bind:this={term.ref} on:invoke={handleInvoke} /> 
+      <svelte:component this={term} bind:this={term.ref} on:invoke={handleInvoke} on:changeTitle={changeTitle}/> 
   </div>
   {/each}
 </div>
