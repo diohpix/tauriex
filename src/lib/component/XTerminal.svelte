@@ -5,6 +5,7 @@
     let termdiv:HTMLElement;
     let xterm:any;
     export let shell:any=null;
+    let name=''
     const dispatch = createEventDispatcher()
     export  function setShell(shell:any){
         shell=shell;
@@ -12,6 +13,7 @@
             dispatch('invoke',{cmd:cmd,data:obj}); 
         },(title:string)=>{
             dispatch('changeTitle',{msg:title,shell:shell})
+            name=title;
         });
     }
     export  function setMessage(msg:string){
@@ -37,7 +39,7 @@
     }
     window.onresize=resize
 </script>
-<input type="radio" name="my_tabs_i" checked={true} role="tab" class="tab" aria-label="Tab1" />
+<input type="radio" name="my_tabs_i" checked={true} role="tab" class="tab" aria-label="{name}" />
 <div role="tabpanel" class="tab-content w-screen">
 <div class="term" bind:this={termdiv} on:resize={resize} />
 </div>

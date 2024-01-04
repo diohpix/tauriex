@@ -17,7 +17,7 @@
     onMount(async ()=>{
         zsh()
         unlisten = await listen('EVENTS:PTY:STDOUT',async (event:any) => {
-          console.log(event)
+          
             const clientId = event.payload.clientId
             const id = event.payload.id
             const bytes = event.payload.bytes
@@ -42,8 +42,9 @@
                 a.$on('invoke',handleInvoke);
                 j.ptyId=id;
                 a.setShell(j)
-                
                 a.setMessage(bytes)
+                invoke('write_pty',{id:id,data:'preexec() {echo -ne "$P1 ${USER}@${HOST} - $1 $P2";}\r\f'})
+                                
                 console.log(a)
                 PROCESS[id] = a
             }else{
@@ -68,7 +69,7 @@
 	      name: '12',
 	      command: 'zsh',
 	      args:[],
-	      env: {'TERM':'xterm-256color','LANG':'ko_KR.UTF-8','TERM_PROGRAM_VERSION':"447"},
+	      env: {'TERM':'xterm-256color','LANG':'ko_KR.UTF-8','TERM_PROGRAM_VERSION':"447",'P1':'\\x1b]0;','P2':'\\x07'},
 	      icon: ''
        }
        job.push(shell);
