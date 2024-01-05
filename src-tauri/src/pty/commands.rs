@@ -31,7 +31,7 @@ pub async fn spawn_pty(
     let mut cmd = CommandBuilder::new(shell.command.clone());
     cmd.args(shell.args.clone());
 
-    let clientId = shell.id.clone();
+    let client_id = shell.id.clone();
     if let Some(dir) = shell.cwd.clone() {
         cmd.cwd(dir);
     }
@@ -76,7 +76,7 @@ pub async fn spawn_pty(
                     app_handle_clone
                         .emit_all(PTY_STDOUT_EVENT, PtyStdoutPayload {
                             id: id_clone.clone(),
-                            clientId:clientId.clone(),
+                            client_id:client_id.clone(),
                             bytes: buf[..n].to_vec(),
                         })
                         .unwrap();

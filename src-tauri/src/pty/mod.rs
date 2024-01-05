@@ -10,7 +10,7 @@ pub mod commands;
 #[derive(Serialize, Deserialize, Clone)]
 struct PtyStdoutPayload {
     id: String,
-    clientId:String,
+    client_id:String,
     bytes: Vec<u8>,
 }
 

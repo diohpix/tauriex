@@ -5,10 +5,11 @@
     let termdiv:HTMLElement;
     let xterm:any;
     export let shell:any=null;
-    let name=''
+    let name='zsh'
     const dispatch = createEventDispatcher()
     export  function setShell(shell:any){
         shell=shell;
+        name = shell.cmd;
         xterm = new Xterm(shell.ptyId,termdiv,(cmd:string,obj:Object)=>{
             dispatch('invoke',{cmd:cmd,data:obj}); 
         },(title:string)=>{

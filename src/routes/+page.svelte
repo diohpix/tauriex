@@ -18,12 +18,12 @@
         zsh()
         unlisten = await listen('EVENTS:PTY:STDOUT',async (event:any) => {
           
-            const clientId = event.payload.clientId
+            const client_id = event.payload.client_id
             const id = event.payload.id
             const bytes = event.payload.bytes
             const j = job.pop();
             let term = PROCESS[id];
-            if(j!==undefined && j.id == clientId){//새로운 콘솔
+            if(j!==undefined && j.id == client_id){//새로운 콘솔
                 /*var xt = XTerminal;
                 listTerm.push(xt);
                 listTerm = listTerm;
