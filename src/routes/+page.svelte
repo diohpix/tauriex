@@ -22,7 +22,7 @@
     let ff:any;
     onMount(async ()=>{
         zsh()
-        unlisten = await listen('EVENTS:PTY:STDOUT',async (event:any) => {
+       /* unlisten = await listen('EVENTS:PTY:STDOUT',async (event:any) => {
             const id = event.payload.id
             const bytes = event.payload.bytes
             const j = job.pop();
@@ -45,7 +45,7 @@
               delete PROCESS[id];
               delete PRE_PROCESS[client_id];
             }
-        })
+        })*/
         document?.getElementById('titlebar-minimize')?.addEventListener('click', () => appWindow.minimize())
         document?.getElementById('titlebar-maximize')?.addEventListener('click', () => appWindow.toggleMaximize())
         document?.getElementById('titlebar-close')?.addEventListener('click', () => appWindow.close())
@@ -54,6 +54,21 @@
     onDestroy(()=>{
         close();
     })
+    $:{
+      const j = job.pop();
+      if(j!==undefined){
+        console.log('job',j)
+        const o  = PRE_PROCESS[j.id]
+        const k = setInterval(()=>{
+            if(o.ref!==undefined){
+              const oo = {id:j.id,name:j.name,command:j.command,args:j.args,env:j.env,icon:j.icon}
+              o.ref.setShell(oo)
+              clearInterval(k);
+            }
+        },100)
+     //   
+      }
+    }
     async function closedTab(id:any){
       delete PROCESS[id.detail.id];
       PRE_PROCESS[id.detail.client_id].hide=true;
@@ -64,7 +79,7 @@
         appWindow.close();
       }
     }
-    async function zsh(){
+      function  zsh(){
       let shell = {
 	      id: ''+Date.now(),
 	      name: 'zsh',
@@ -75,7 +90,8 @@
        }
        job.push(shell);
        PRE_PROCESS[shell.id]=shell;
-       var a= await invoke('spawn_pty',{shell});
+       console.log('process',PRE_PROCESS)
+       //await tick();
        console.log('---------------shell---------------')
        
     }
@@ -83,7 +99,7 @@
         for (const [key, value] of Object.entries(PROCESS)) {
             invoke('kill_pty',{id:`${key}`});
         }
-        unlisten();
+     //   unlisten();
         PROCESS={}
     }
     

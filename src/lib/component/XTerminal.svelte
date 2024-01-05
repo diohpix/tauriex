@@ -3,20 +3,29 @@
     import {get_current_component} from 'svelte/internal'
 	import { createEventDispatcher, onDestroy, onMount, tick } from 'svelte';
     import {Xterm} from './Xterm'
+    import { invoke } from '@tauri-apps/api/tauri'
     import 'xterm/css/xterm.css'
+    import { emit, listen } from '@tauri-apps/api/event'
     const THISComponent = get_current_component()
     let programName:string=''
     let termdiv:HTMLElement;
     let xterm:any;
-     let shell:any=null;
-    
+    let shell:any=null;
+    let id:string;
+    let unlisten:Function;
     const dispatch = createEventDispatcher()
-    export  function setShell(sh:any){
+    export async  function setShell(sh:any){
         shell=sh;
+        unlisten = await listen(shell.id,async (event:any) => {
+            shell.ptyId = event.payload.id
+            const bytes = event.payload.bytes
+            console.log('read',bytes.length)
+            xterm.setMessage(bytes)
+        })
         programName = shell.command;
         console.log('programName',shell)
-        xterm = new Xterm(shell.ptyId,termdiv,(cmd:string,obj:Object)=>{
-            dispatch('invoke',{cmd:cmd,data:obj}); 
+        xterm = new Xterm(shell,termdiv,(cmd:string,obj:any)=>{
+            invoke(cmd,obj);
         },(cmd:string,title:string)=>{
             console.log(cmd)
             if(cmd=='titleChange'){
@@ -29,23 +38,20 @@
                 dispatch(cmd)
             } 
         });
+        await invoke('spawn_pty',{shell});
     }
+    
     export  function setMessage(msg:string){
         if(xterm!==undefined)
         xterm.setMessage(msg);
     }
     onMount( async ()=>{
-        console.log('mount terminal')
-        await tick();
-        setTimeout( ()=>{
-            
-           // resize()
-        },100)
+        console.log('mount terminal')   
     })   
     onDestroy(()=>{          
         console.log('destroy')  
-        dispatch('invoke',{cmd:'kill_pty',data:{id:shell.ptyId}})
-        console.log('send kill')  
+        invoke('invoke',{cmd:'kill_pty',data:{id:shell.ptyId}})
+        unlisten();
     })
     
     function close(){

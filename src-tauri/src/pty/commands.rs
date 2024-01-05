@@ -74,7 +74,7 @@ pub async fn spawn_pty(
             match stdout_reader.read(&mut buf) {
                 Ok(n) if n > 0 => {
                     app_handle_clone
-                        .emit_all(PTY_STDOUT_EVENT, PtyStdoutPayload {
+                        .emit_all(&client_id, PtyStdoutPayload {
                             id: id_clone.clone(),
                             client_id:client_id.clone(),
                             bytes: buf[..n].to_vec(),
