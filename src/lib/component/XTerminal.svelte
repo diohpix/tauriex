@@ -21,9 +21,10 @@
             if(cmd=='titleChange'){
                 programName=title;
             }else if(cmd=='closeTab'){
+                dispatch(cmd,shell.ptyId)
                 close();
             }else if(cmd=='openTab'){
-                dispatch('openTab')
+                dispatch(cmd)
             }
            // dispatch('changeTitle',{msg:title,shell:shell})
             

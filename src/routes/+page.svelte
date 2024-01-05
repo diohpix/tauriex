@@ -1,18 +1,17 @@
 <script lang="ts">
     import "../app.css";
     import { invoke } from '@tauri-apps/api/tauri'
-    import { Command } from '@tauri-apps/api/shell'
+   import { Command } from '@tauri-apps/api/shell'
     import { emit, listen } from '@tauri-apps/api/event'
-	import { onDestroy, onMount, tick } from "svelte";
+	import { onDestroy, onMount, } from "svelte";
     import XTerminal from '../lib/component/XTerminal.svelte'
     import XTemCommand from '../lib/component/Command.svelte'
     import "tailwindcss/tailwind.css";
     import { appWindow } from '@tauri-apps/api/window'
-	import { list } from "postcss";
-    let listTerm: any[]=[];
+	
+    
     let unlisten:Function;
     let PROCESS:any={};
-    let PROECESS_NAME:any={};
     let job:any[]=[];
     onMount(async ()=>{
         zsh()
@@ -28,6 +27,7 @@
                 })
                 a.$on('invoke',handleInvoke);
                 a.$on('openTab',zsh)
+                a.$on('closeTab',closedTab)
                 j.ptyId=id;
                 a.setShell(j)
                 a.setMessage(bytes)
@@ -48,7 +48,12 @@
     onDestroy(()=>{
         close();
     })
-    
+    function closedTab(id:any){
+      delete PROCESS[id.detail];
+      if(Object.keys(PROCESS).length==0){
+        appWindow.close();
+      }
+    }
     async function zsh(){
       let shell = {
 	      id: ''+Date.now(),
@@ -70,12 +75,8 @@
         }
         unlisten();
         PROCESS={}
-        listTerm=[];
     }
-    function changeTitle(e:any){
-      console.log('changeTitle',e)
-      PROECESS_NAME[0]=e.detail.msg
-    }
+    
     function handleInvoke(e:CustomEvent){
         console.log(e);
         invoke(e.detail.cmd,e.detail.data);
@@ -88,7 +89,7 @@
     function f(o:any){
       return o
     }
-    let selectedTab=-1;
+    
    
 </script>
 <div data-tauri-drag-region class="titlebar">
