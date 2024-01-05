@@ -15,6 +15,7 @@ class Xterm {
 		this.subCallback = callback2;
 		this.id = id;
 		this.mount(element);
+		console.log('xterm mount');
 	}
 	setMessage(id: string) {
 		this.term.write(id);

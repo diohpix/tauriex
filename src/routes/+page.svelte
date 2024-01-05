@@ -1,43 +1,49 @@
 <script lang="ts">
-    import "../app.css";
+    
+    import "../app.pcss";
     import { invoke } from '@tauri-apps/api/tauri'
-   import { Command } from '@tauri-apps/api/shell'
+    import { Command } from '@tauri-apps/api/shell'
     import { emit, listen } from '@tauri-apps/api/event'
-	import { onDestroy, onMount, } from "svelte";
+	  import { onDestroy, onMount, tick, } from "svelte";
     import XTerminal from '../lib/component/XTerminal.svelte'
     import XTemCommand from '../lib/component/Command.svelte'
     import "tailwindcss/tailwind.css";
     import { appWindow } from '@tauri-apps/api/window'
 	
-    
+    import { Tabs ,TabsList,TabsTrigger,TabsContent}from "$lib/components/ui/tabs";
+	
+	
+	
+	
     let unlisten:Function;
     let PROCESS:any={};
+    let PRE_PROCESS:any={};
     let job:any[]=[];
+    let ff:any;
     onMount(async ()=>{
         zsh()
         unlisten = await listen('EVENTS:PTY:STDOUT',async (event:any) => {
-            const client_id = event.payload.client_id
             const id = event.payload.id
             const bytes = event.payload.bytes
             const j = job.pop();
             let term = PROCESS[id];
-            if(j!==undefined && j.id == client_id){//새로운 콘솔
-                const a = new XTerminal({
-                  target:document.querySelector("#dd")
-                })
-                a.$on('invoke',handleInvoke);
-                a.$on('openTab',zsh)
-                a.$on('closeTab',closedTab)
+            if(j!==undefined ){//새로운 콘솔
+              const client_id = event.payload.client_id
+              if( j.id == client_id){
+                var o  = PRE_PROCESS[client_id].ref
                 j.ptyId=id;
-                a.setShell(j)
-                a.setMessage(bytes)
+                o.setShell(j)
+                o.setMessage(bytes)
                 invoke('write_pty',{id:id,data:'preexec() {echo -ne "$P1 ${USER}@${HOST} - $1 $P2";}\r\f'})
-                PROCESS[id] = a
-                window.resizeTo(1024, 768);
-            }else if(term.setMessage !== undefined){
+                PROCESS[id] = o
+              }
+            }else if(term !==undefined){
+              console.log(term,event)
               term.setMessage(bytes)
             }else{
+              const client_id = event.payload.client_id
               delete PROCESS[id];
+              delete PRE_PROCESS[client_id];
             }
         })
         document?.getElementById('titlebar-minimize')?.addEventListener('click', () => appWindow.minimize())
@@ -48,8 +54,12 @@
     onDestroy(()=>{
         close();
     })
-    function closedTab(id:any){
-      delete PROCESS[id.detail];
+    async function closedTab(id:any){
+      delete PROCESS[id.detail.id];
+      PRE_PROCESS[id.detail.client_id].hide=true;
+      await tick();
+      delete PRE_PROCESS[id.detail.client_id]
+      PRE_PROCESS=PRE_PROCESS;
       if(Object.keys(PROCESS).length==0){
         appWindow.close();
       }
@@ -64,7 +74,7 @@
 	      icon: ''
        }
        job.push(shell);
-       
+       PRE_PROCESS[shell.id]=shell;
        var a= await invoke('spawn_pty',{shell});
        console.log('---------------shell---------------')
        
@@ -78,7 +88,7 @@
     }
     
     function handleInvoke(e:CustomEvent){
-        console.log(e);
+        //console.log('invoke',e);
         invoke(e.detail.cmd,e.detail.data);
     }
     function handleMultiInvoke(e:CustomEvent){
@@ -86,9 +96,7 @@
             invoke(e.detail.cmd,{id:`${key}`,data:e.detail.msg});
         }
     }
-    function f(o:any){
-      return o
-    }
+   
     
    
 </script>
@@ -116,18 +124,18 @@
   </div>
 </div>
 
-<div role="tablist" id="dd" class="tabs tabs-bordered">
-  <!--
-  {#each listTerm as term ,i }
-  <input type="radio" name="my_tabs_i" checked={i==selectedTab} role="tab" class="tab" aria-label="{PROECESS_NAME[i]}" />
-  <div role="tabpanel" class="tab-content w-screen">
-      <svelte:component this={term} bind:this={term.ref} on:invoke={handleInvoke} on:changeTitle={changeTitle}/> 
-  </div>
+<Tabs value="account" class="w-full" >  
+  <TabsList>
+    {#each Object.entries(PRE_PROCESS) as [id,shell]}
+      <TabsTrigger value="{id}">{shell.command}</TabsTrigger>
+    {/each}
+  </TabsList>
+  {#each Object.entries(PRE_PROCESS) as [id,shell]}
+    {#if shell.hide==undefined}
+    <TabsContent value="{id}">
+      <svelte:component this={XTerminal}  bind:this={PRE_PROCESS[id].ref} on:invoke={handleInvoke} on:closeTab={closedTab} on:openTab={zsh}/>
+    </TabsContent>
+    {/if}
   {/each}
--->
-</div>
-
+</Tabs>
 <XTemCommand on:invoke={handleMultiInvoke}/>
-
-
-  

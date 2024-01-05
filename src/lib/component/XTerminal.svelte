@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { Tabs ,TabsList,TabsTrigger,TabsContent}from "$lib/components/ui/tabs";
     import {get_current_component} from 'svelte/internal'
 	import { createEventDispatcher, onDestroy, onMount, tick } from 'svelte';
     import {Xterm} from './Xterm'
@@ -7,7 +8,7 @@
     let programName:string=''
     let termdiv:HTMLElement;
     let xterm:any;
-    export let shell:any=null;
+     let shell:any=null;
     
     const dispatch = createEventDispatcher()
     export  function setShell(sh:any){
@@ -20,15 +21,13 @@
             console.log(cmd)
             if(cmd=='titleChange'){
                 programName=title;
+                shell.command = title;
             }else if(cmd=='closeTab'){
-                dispatch(cmd,shell.ptyId)
+                dispatch(cmd,{id:shell.ptyId,client_id:shell.id})
                 close();
             }else if(cmd=='openTab'){
                 dispatch(cmd)
-            }
-           // dispatch('changeTitle',{msg:title,shell:shell})
-            
-            
+            } 
         });
     }
     export  function setMessage(msg:string){
@@ -46,20 +45,21 @@
     onDestroy(()=>{          
         console.log('destroy')  
         dispatch('invoke',{cmd:'kill_pty',data:{id:shell.ptyId}})
+        console.log('send kill')  
     })
     
     function close(){
-        
         THISComponent.$destroy();
     }
 
     
 </script>
-<input type="radio" name="my_tabs_i" checked={true} role="tab" class="tab w-full" aria-label="{programName}" />
-<div role="tabpanel" class="tab-content w-screen">
+
+
+
 <div class="term" bind:this={termdiv}  />
-<button on:click={close}>X</button>
-</div>
+
+
 
 <style>
     
