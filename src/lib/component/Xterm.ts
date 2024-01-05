@@ -1,19 +1,18 @@
 import { Terminal } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
-import { WebglAddon } from 'xterm-addon-webgl';
-import { createEventDispatcher } from 'svelte';
+import { CanvasAddon } from 'xterm-addon-canvas';
 
 class Xterm {
 	term: Terminal;
 	fitAddon: FitAddon;
 	callback: Function;
-	titleChange: Function;
+	subCallback: Function;
 	id: string = '';
 	constructor(id: string, element: HTMLElement, callback: Function, callback2: Function) {
 		this.term = new Terminal({});
 		this.fitAddon = new FitAddon();
 		this.callback = callback;
-		this.titleChange = callback2;
+		this.subCallback = callback2;
 		this.id = id;
 		this.mount(element);
 	}
@@ -25,22 +24,24 @@ class Xterm {
 		let _fromOndata = false;
 
 		this.term.loadAddon(this.fitAddon);
-		this.term.loadAddon(new WebglAddon());
+		//this.term.loadAddon(new WebglAddon());
+		this.term.loadAddon(new CanvasAddon());
 		this.term.options = {
 			fontSize: 12,
-			logLevel: 'debug',
+			logLevel: 'info',
 			windowsMode: false,
 			windowOptions: { popTitle: true, pushTitle: true, getWinTitle: true, getIconTitle: true }
 		};
 		this.term.open(element);
 		this.term.focus();
 		this.fitAddon.fit();
-		/*const resizeObserver = new ResizeObserver(entries => {
+		const resizeObserver = new ResizeObserver((entries) => {
 			//if (autoResize) {
-			  this.fitAddon.fit();
+			this.fitAddon.fit();
+			console.log('resize-------------------');
 			//}
-		  });
-		  resizeObserver.observe(element);*/
+		});
+		resizeObserver.observe(element);
 		this.term.element?.addEventListener('input', (e: Event) => {
 			if (e instanceof InputEvent) {
 				const key = e.data;
@@ -69,14 +70,19 @@ class Xterm {
 			return true;
 		});
 		this.term.element?.addEventListener('keydown', (e: KeyboardEvent) => {
-			console.log(this.term.buffer);
 			const key = e.key;
-			console.log('down', key, 'compStart', _composingStart);
+			console.log('down', key, 'compStart', _composingStart, _fromOndata);
 			if (_fromOndata) {
 				_fromOndata = false;
 			} else {
 				if (!e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey) {
 					this.invoke(key);
+				} else if (e.metaKey) {
+					if (e.code == 'KeyW') {
+						this.subCallback('closeTab');
+					} else if (e.code == 'KeyT') {
+						this.subCallback('openTab');
+					}
 				}
 			}
 			return true;
@@ -99,7 +105,7 @@ class Xterm {
 		});
 
 		this.term.onTitleChange((e) => {
-			this.titleChange(e);
+			this.subCallback('titleChange', e);
 		});
 	}
 	invoke(msg: Object) {

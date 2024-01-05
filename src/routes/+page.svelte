@@ -27,11 +27,13 @@
                   target:document.querySelector("#dd")
                 })
                 a.$on('invoke',handleInvoke);
+                a.$on('openTab',zsh)
                 j.ptyId=id;
                 a.setShell(j)
                 a.setMessage(bytes)
                 invoke('write_pty',{id:id,data:'preexec() {echo -ne "$P1 ${USER}@${HOST} - $1 $P2";}\r\f'})
                 PROCESS[id] = a
+                window.resizeTo(1024, 768);
             }else if(term.setMessage !== undefined){
               term.setMessage(bytes)
             }else{
@@ -41,7 +43,7 @@
         document?.getElementById('titlebar-minimize')?.addEventListener('click', () => appWindow.minimize())
         document?.getElementById('titlebar-maximize')?.addEventListener('click', () => appWindow.toggleMaximize())
         document?.getElementById('titlebar-close')?.addEventListener('click', () => appWindow.close())
-        window.resizeTo(1024, 768);
+        
     })
     onDestroy(()=>{
         close();

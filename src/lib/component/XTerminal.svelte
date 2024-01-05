@@ -4,23 +4,34 @@
     import {Xterm} from './Xterm'
     import 'xterm/css/xterm.css'
     const THISComponent = get_current_component()
-
+    let programName:string=''
     let termdiv:HTMLElement;
     let xterm:any;
     export let shell:any=null;
-    let name='zsh'
+    
     const dispatch = createEventDispatcher()
     export  function setShell(sh:any){
         shell=sh;
-        name = shell.cmd;
+        programName = shell.command;
+        console.log('programName',shell)
         xterm = new Xterm(shell.ptyId,termdiv,(cmd:string,obj:Object)=>{
             dispatch('invoke',{cmd:cmd,data:obj}); 
-        },(title:string)=>{
-            dispatch('changeTitle',{msg:title,shell:shell})
-            name=title;
+        },(cmd:string,title:string)=>{
+            console.log(cmd)
+            if(cmd=='titleChange'){
+                programName=title;
+            }else if(cmd=='closeTab'){
+                close();
+            }else if(cmd=='openTab'){
+                dispatch('openTab')
+            }
+           // dispatch('changeTitle',{msg:title,shell:shell})
+            
+            
         });
     }
     export  function setMessage(msg:string){
+        if(xterm!==undefined)
         xterm.setMessage(msg);
     }
     onMount( async ()=>{
@@ -28,27 +39,24 @@
         await tick();
         setTimeout( ()=>{
             
-            resize()
+           // resize()
         },100)
     })   
-    onDestroy(()=>{            
+    onDestroy(()=>{          
+        console.log('destroy')  
         dispatch('invoke',{cmd:'kill_pty',data:{id:shell.ptyId}})
     })
-    function resize(){
-        console.log('resize')
-        
-        if(xterm!==undefined)
-        xterm.fitAddon.fit();
-    }
+    
     function close(){
         
         THISComponent.$destroy();
     }
-    window.onresize=resize
+
+    
 </script>
-<input type="radio" name="my_tabs_i" checked={true} role="tab" class="tab w-full" aria-label="{name}" />
+<input type="radio" name="my_tabs_i" checked={true} role="tab" class="tab w-full" aria-label="{programName}" />
 <div role="tabpanel" class="tab-content w-screen">
-<div class="term" bind:this={termdiv} on:resize={resize} />
+<div class="term" bind:this={termdiv}  />
 <button on:click={close}>X</button>
 </div>
 
