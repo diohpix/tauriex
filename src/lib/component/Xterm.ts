@@ -7,6 +7,7 @@ class Xterm {
 	fitAddon: FitAddon;
 	callback: Function;
 	subCallback: Function;
+	el:HTMLElement;
 	shell: any ;
 	constructor(shell: any, element: HTMLElement, callback: Function, callback2: Function) {
 		this.term = new Terminal({});
@@ -21,6 +22,7 @@ class Xterm {
 		this.term.write(id);
 	}
 	mount(element: HTMLElement) {
+		this.el=element;
 		let _composingStart = false;
 		let _fromOndata = false;
 
@@ -34,11 +36,12 @@ class Xterm {
 			windowOptions: { popTitle: true, pushTitle: true, getWinTitle: true, getIconTitle: true }
 		};
 		this.term.open(element);
-		this.term.focus();
+		
 		this.fitAddon.fit();
 		const resizeObserver = new ResizeObserver((entries) => {
 			//if (autoResize) {
 			this.fitAddon.fit();
+			this.term.focus();
 			console.log('resize-------------------');
 			//}
 		});
@@ -119,6 +122,10 @@ class Xterm {
 			size: { rows: evt.rows, cols: evt.cols, pixel_width: 0, pixel_height: 0 }
 		};
 		this.callback('resize_pty', obj);
+	}
+	focus(){
+		this.fitAddon.fit();
+		this.term.focus();
 	}
 }
 export { Xterm };
