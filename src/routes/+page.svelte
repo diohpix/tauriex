@@ -17,25 +17,12 @@
     onMount(async ()=>{
         zsh()
         unlisten = await listen('EVENTS:PTY:STDOUT',async (event:any) => {
-          
             const client_id = event.payload.client_id
             const id = event.payload.id
             const bytes = event.payload.bytes
             const j = job.pop();
             let term = PROCESS[id];
             if(j!==undefined && j.id == client_id){//새로운 콘솔
-                /*var xt = XTerminal;
-                listTerm.push(xt);
-                listTerm = listTerm;
-                await tick();
-                var _term = listTerm[listTerm.length-1];
-                console.log('b',_term)
-                j.ptyId= id;
-                _term.ref.setShell(j);
-                
-                PROCESS[id] = _term.ref
-                selectedTab=listTerm.length-1;
-                PROECESS_NAME[listTerm.length-1]='zsh'*/
                 const a = new XTerminal({
                   target:document.querySelector("#dd")
                 })
@@ -44,14 +31,12 @@
                 a.setShell(j)
                 a.setMessage(bytes)
                 invoke('write_pty',{id:id,data:'preexec() {echo -ne "$P1 ${USER}@${HOST} - $1 $P2";}\r\f'})
-                                
-                console.log(a)
                 PROCESS[id] = a
-            }else{
+            }else if(term.setMessage !== undefined){
               term.setMessage(bytes)
+            }else{
+              delete PROCESS[id];
             }
-            
-            
         })
         document?.getElementById('titlebar-minimize')?.addEventListener('click', () => appWindow.minimize())
         document?.getElementById('titlebar-maximize')?.addEventListener('click', () => appWindow.toggleMaximize())
@@ -60,16 +45,15 @@
     })
     onDestroy(()=>{
         close();
-       
     })
     
     async function zsh(){
       let shell = {
 	      id: ''+Date.now(),
-	      name: '12',
+	      name: 'zsh',
 	      command: 'zsh',
 	      args:[],
-	      env: {'TERM':'xterm-256color','LANG':'ko_KR.UTF-8','TERM_PROGRAM_VERSION':"447",'P1':'\\x1b]0;','P2':'\\x07'},
+	      env: {'TERM':'xterm-256color','LANG':'ko_KR.UTF-8','P1':'\\x1b]0;','P2':'\\x07'},
 	      icon: ''
        }
        job.push(shell);
@@ -91,7 +75,7 @@
       PROECESS_NAME[0]=e.detail.msg
     }
     function handleInvoke(e:CustomEvent){
-     //   console.log(e);
+        console.log(e);
         invoke(e.detail.cmd,e.detail.data);
     }
     function handleMultiInvoke(e:CustomEvent){

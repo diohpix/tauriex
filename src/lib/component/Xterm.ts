@@ -75,7 +75,9 @@ class Xterm {
 			if (_fromOndata) {
 				_fromOndata = false;
 			} else {
-				if (!e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey) this.invoke(key);
+				if (!e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey) {
+					this.invoke(key);
+				}
 			}
 			return true;
 		});
