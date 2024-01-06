@@ -1,19 +1,20 @@
 import { Terminal } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 import { CanvasAddon } from 'xterm-addon-canvas';
-
+import { WebglAddon } from 'xterm-addon-webgl';
 class Xterm {
 	term: Terminal;
 	fitAddon: FitAddon;
 	callback: Function;
 	subCallback: Function;
-	id: string = '';
-	constructor(id: string, element: HTMLElement, callback: Function, callback2: Function) {
+	el:HTMLElement;
+	shell: any ;
+	constructor(shell: any, element: HTMLElement, callback: Function, callback2: Function) {
 		this.term = new Terminal({});
 		this.fitAddon = new FitAddon();
 		this.callback = callback;
 		this.subCallback = callback2;
-		this.id = id;
+		this.shell = shell;
 		this.mount(element);
 		console.log('xterm mount');
 	}
@@ -21,12 +22,13 @@ class Xterm {
 		this.term.write(id);
 	}
 	mount(element: HTMLElement) {
+		this.el=element;
 		let _composingStart = false;
 		let _fromOndata = false;
 
 		this.term.loadAddon(this.fitAddon);
-		//this.term.loadAddon(new WebglAddon());
-		this.term.loadAddon(new CanvasAddon());
+		this.term.loadAddon(new WebglAddon());
+		//this.term.loadAddon(new CanvasAddon());
 		this.term.options = {
 			fontSize: 12,
 			logLevel: 'info',
@@ -34,11 +36,12 @@ class Xterm {
 			windowOptions: { popTitle: true, pushTitle: true, getWinTitle: true, getIconTitle: true }
 		};
 		this.term.open(element);
-		this.term.focus();
+		
 		this.fitAddon.fit();
 		const resizeObserver = new ResizeObserver((entries) => {
 			//if (autoResize) {
 			this.fitAddon.fit();
+			this.term.focus();
 			console.log('resize-------------------');
 			//}
 		});
@@ -110,15 +113,19 @@ class Xterm {
 		});
 	}
 	invoke(msg: Object) {
-		var obj = { id: this.id, data: msg };
+		var obj = { id: this.shell.ptyId, data: msg };
 		this.callback('write_pty', obj);
 	}
 	resize(evt: any) {
 		var obj = {
-			id: this.id,
+			id: this.shell.ptyId,
 			size: { rows: evt.rows, cols: evt.cols, pixel_width: 0, pixel_height: 0 }
 		};
 		this.callback('resize_pty', obj);
+	}
+	focus(){
+		this.fitAddon.fit();
+		this.term.focus();
 	}
 }
 export { Xterm };

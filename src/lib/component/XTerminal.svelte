@@ -3,49 +3,57 @@
     import {get_current_component} from 'svelte/internal'
 	import { createEventDispatcher, onDestroy, onMount, tick } from 'svelte';
     import {Xterm} from './Xterm'
+    import { invoke } from '@tauri-apps/api/tauri'
     import 'xterm/css/xterm.css'
+    import { emit, listen } from '@tauri-apps/api/event'
     const THISComponent = get_current_component()
-    let programName:string=''
     let termdiv:HTMLElement;
     let xterm:any;
-     let shell:any=null;
-    
+    let shell:any=null;
+    let id:string;
+    let unlisten:Function;
     const dispatch = createEventDispatcher()
-    export  function setShell(sh:any){
+    export async  function setShell(sh:any){
         shell=sh;
-        programName = shell.command;
-        console.log('programName',shell)
-        xterm = new Xterm(shell.ptyId,termdiv,(cmd:string,obj:Object)=>{
-            dispatch('invoke',{cmd:cmd,data:obj}); 
+        unlisten = await listen(shell.id,async (event:any) => {
+            const bytes = event.payload.bytes
+            if(shell.ptyId == undefined){
+                invoke('write_pty',{id:event.payload.id,data:'preexec() {echo -ne "$P1 ${USER}@${HOST} - $1 $P2";}\r\f'})
+                shell.ptyId = event.payload.id
+                dispatch('terminalStart',shell);
+            }
+            xterm.setMessage(bytes)
+        })
+        xterm = new Xterm(shell,termdiv,(cmd:string,obj:any)=>{
+            invoke(cmd,obj);
         },(cmd:string,title:string)=>{
-            console.log(cmd)
             if(cmd=='titleChange'){
-                programName=title;
                 shell.command = title;
+                console.log('title',title)
+                dispatch('titleChange',shell);
             }else if(cmd=='closeTab'){
-                dispatch(cmd,{id:shell.ptyId,client_id:shell.id})
+                dispatch(cmd,shell)
                 close();
             }else if(cmd=='openTab'){
                 dispatch(cmd)
             } 
         });
+        await invoke('spawn_pty',{shell});
+    }
+    export function focus(){
+        xterm.focus();
     }
     export  function setMessage(msg:string){
-        if(xterm!==undefined)
-        xterm.setMessage(msg);
+        invoke('write_pty',{id:shell.ptyId,data:msg})
     }
     onMount( async ()=>{
-        console.log('mount terminal')
-        await tick();
-        setTimeout( ()=>{
-            
-           // resize()
-        },100)
+        console.log('mount terminal')   
     })   
     onDestroy(()=>{          
+        unlisten();
         console.log('destroy')  
-        dispatch('invoke',{cmd:'kill_pty',data:{id:shell.ptyId}})
-        console.log('send kill')  
+        invoke('kill_pty',{id:shell.ptyId})
+        
     })
     
     function close(){

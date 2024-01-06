@@ -19,10 +19,10 @@
     let PROCESS:any={};
     let PRE_PROCESS:any={};
     let job:any[]=[];
-    let ff:any;
+    let defaultTab='';
     onMount(async ()=>{
         zsh()
-        unlisten = await listen('EVENTS:PTY:STDOUT',async (event:any) => {
+       /* unlisten = await listen('EVENTS:PTY:STDOUT',async (event:any) => {
             const id = event.payload.id
             const bytes = event.payload.bytes
             const j = job.pop();
@@ -45,7 +45,7 @@
               delete PROCESS[id];
               delete PRE_PROCESS[client_id];
             }
-        })
+        })*/
         document?.getElementById('titlebar-minimize')?.addEventListener('click', () => appWindow.minimize())
         document?.getElementById('titlebar-maximize')?.addEventListener('click', () => appWindow.toggleMaximize())
         document?.getElementById('titlebar-close')?.addEventListener('click', () => appWindow.close())
@@ -54,17 +54,38 @@
     onDestroy(()=>{
         close();
     })
-    async function closedTab(id:any){
-      delete PROCESS[id.detail.id];
-      PRE_PROCESS[id.detail.client_id].hide=true;
-      await tick();
-      delete PRE_PROCESS[id.detail.client_id]
-      PRE_PROCESS=PRE_PROCESS;
-      if(Object.keys(PROCESS).length==0){
-        appWindow.close();
+    $:{
+      const j = job.pop();
+      if(j!==undefined){
+        console.log('job',j)
+        const o  = PRE_PROCESS[j.id]
+        const k = setInterval(()=>{
+            if(o.ref!==undefined){
+              const oo = {id:j.id,name:j.name,command:j.command,args:j.args,env:j.env,icon:j.icon}
+              o.ref.setShell(oo)
+              clearInterval(k);
+            }
+        },100)
+     //   
       }
     }
-    async function zsh(){
+    async function closedTab(e:any){
+      
+      PRE_PROCESS[e.detail.id].hide=true;
+      await tick();
+      delete PRE_PROCESS[e.detail.id]
+      PRE_PROCESS=PRE_PROCESS;
+      if(Object.keys(PRE_PROCESS).length==0){
+        appWindow.close();
+      }
+
+      Object.entries(PRE_PROCESS).forEach(([l,k])=>{
+        
+          defaultTab = l
+          console.log('def',defaultTab)
+      })
+    }
+      function  zsh(){
       let shell = {
 	      id: ''+Date.now(),
 	      name: 'zsh',
@@ -75,7 +96,8 @@
        }
        job.push(shell);
        PRE_PROCESS[shell.id]=shell;
-       var a= await invoke('spawn_pty',{shell});
+       console.log('process',PRE_PROCESS)
+       //await tick();
        console.log('---------------shell---------------')
        
     }
@@ -83,21 +105,26 @@
         for (const [key, value] of Object.entries(PROCESS)) {
             invoke('kill_pty',{id:`${key}`});
         }
-        unlisten();
         PROCESS={}
     }
     
-    function handleInvoke(e:CustomEvent){
-        //console.log('invoke',e);
-        invoke(e.detail.cmd,e.detail.data);
-    }
     function handleMultiInvoke(e:CustomEvent){
-        for (const [key, value] of Object.entries(PROCESS)) {
-            invoke(e.detail.cmd,{id:`${key}`,data:e.detail.msg});
-        }
+      for (const [key, value] of Object.entries(PRE_PROCESS)) {
+          //invoke(e.detail.cmd,{id:`${key}`,data:e.detail.msg});
+          console.log(e.detail)
+          value.ref.setMessage(e.detail.msg)
+          
+      }
     }
-   
-    
+    function titleChange(e:CustomEvent){
+      PRE_PROCESS[e.detail.id].command = e.detail.command;
+    }
+    function terminalStart(e:CustomEvent){
+      defaultTab=e.detail.id;
+    }
+    function focusTerm(id:string){
+      PRE_PROCESS[id].ref.focus();
+    }
    
 </script>
 <div data-tauri-drag-region class="titlebar">
@@ -124,18 +151,44 @@
   </div>
 </div>
 
-<Tabs value="account" class="w-full" >  
+<Tabs value="{defaultTab}" class="w-full" >  
   <TabsList>
     {#each Object.entries(PRE_PROCESS) as [id,shell]}
-      <TabsTrigger value="{id}">{shell.command}</TabsTrigger>
+      <TabsTrigger on:click={(e)=>focusTerm(id)} value="{id}">{shell.command}</TabsTrigger>
     {/each}
   </TabsList>
   {#each Object.entries(PRE_PROCESS) as [id,shell]}
     {#if shell.hide==undefined}
     <TabsContent value="{id}">
-      <svelte:component this={XTerminal}  bind:this={PRE_PROCESS[id].ref} on:invoke={handleInvoke} on:closeTab={closedTab} on:openTab={zsh}/>
+      <svelte:component this={XTerminal}  bind:this={PRE_PROCESS[id].ref} on:titleChange={titleChange} on:terminalStart={terminalStart}  on:closeTab={closedTab} on:openTab={zsh}/>
     </TabsContent>
     {/if}
   {/each}
 </Tabs>
 <XTemCommand on:invoke={handleMultiInvoke}/>
+<style>
+  body {
+    margin-top: 50px;
+  }
+  .titlebar {
+  height: 30px;
+  background: #329ea3;
+  user-select: none;
+  display: flex;
+  justify-content: flex-end;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+}
+.titlebar-button {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  width: 30px;
+  height: 30px;
+}
+.titlebar-button:hover {
+  background: #5bbec3;
+}
+</style>
