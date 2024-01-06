@@ -14,12 +14,7 @@
   "tauri": {
     "allowlist": {
       "all": true,
-      "shell":{
-        "all":true,
-        "scope":[
-          {"name":"ssh","cmd":"ssh","args":[{ "validator": "\\S+" }]}
-        ]
-      },
+      
       "window": {
         "all": false,
         "close": true,
