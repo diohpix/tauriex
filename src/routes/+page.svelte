@@ -7,11 +7,11 @@
 	  import { onDestroy, onMount, tick, } from "svelte";
     import XTerminal from '../lib/component/XTerminal.svelte'
     import XTemCommand from '../lib/component/Command.svelte'
-    import "tailwindcss/tailwind.css";
+    
     import { appWindow,WebviewWindow } from '@tauri-apps/api/window'
     
 	
-    import { Tabs ,TabsList,TabsTrigger,TabsContent}from "$lib/components/ui/tabs";
+  
 	
 	
 	
@@ -128,21 +128,21 @@
     }
 </script>
 
-<Tabs value="{defaultTab}" class="w-full" >
-  <TabsList>
+
+
     {#each Object.entries(PRE_PROCESS) as [id,shell]}
-      <TabsTrigger on:click={(e)=>focusTerm(shell)} value="{id}"><!--div class="w-8">x</div--><div>{shell.command}</div></TabsTrigger>
+      <a on:click={(e)=>focusTerm(shell)} value="{id}"><div>{shell.command}</div></a>
     {/each}
     <div class="grid w-6 justify-items-center" ><a href="#" on:click={zsh}>+</a></div>
-  </TabsList>
+
   {#each Object.entries(PRE_PROCESS) as [id,shell]}
     {#if shell.hide==undefined}
-    <TabsContent value="{id}">
+
       <svelte:component this={XTerminal}  bind:this={PRE_PROCESS[id].ref} on:titleChange={titleChange} on:terminalStart={terminalStart}  on:closeTab={closedTab} on:openTab={zsh}/>
-    </TabsContent>
+    
     {/if}
   {/each}
-</Tabs>
+
 <button on:click={opendoc}>open</button>
 <button on:click={changeUrl}>change</button>
 <XTemCommand on:invoke={handleMultiInvoke}/>

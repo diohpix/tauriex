@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { Tabs ,TabsList,TabsTrigger,TabsContent}from "$lib/components/ui/tabs";
+    
     import {get_current_component} from 'svelte/internal'
 	import { createEventDispatcher, onDestroy, onMount, tick } from 'svelte';
     import {Xterm} from './Xterm'
