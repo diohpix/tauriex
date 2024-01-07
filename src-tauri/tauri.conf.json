@@ -16,7 +16,7 @@
       "all": true,
       
       "window": {
-        "all": false,
+        "all": true,
         "close": true,
         "hide": true,
         "show": true,
@@ -69,7 +69,7 @@
     "windows": [
       {
         "fullscreen": false,
-        "decorations": false,
+        "decorations": true,
         "resizable": true,
         "title": "myTerm"
         

@@ -24,6 +24,9 @@ impl JexpeState {
 
 
 fn main() {
+    
+
+
   Builder::default()
       .manage(JexpeState::new())
       .invoke_handler(tauri::generate_handler![
@@ -32,6 +35,7 @@ fn main() {
           pty::commands::write_pty,
           pty::commands::resize_pty,
           pty::commands::kill_pty,
+          pty::commands::open_docs
       ])
       .run(tauri::generate_context!())
       .expect("error while running jexpe application");

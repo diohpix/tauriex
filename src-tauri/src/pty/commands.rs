@@ -222,3 +222,11 @@ pub async fn kill_pty(
 
     Ok(())
 }
+#[tauri::command]
+pub async fn open_docs(handle: tauri::AppHandle) {
+  let docs_window = tauri::WindowBuilder::new(
+    &handle,
+    "external", /* the unique window label */
+    tauri::WindowUrl::External("https://tauri.app/".parse().unwrap())
+  ).build().unwrap();
+}
