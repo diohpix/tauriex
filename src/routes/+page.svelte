@@ -10,11 +10,11 @@
     
     import { appWindow,WebviewWindow } from '@tauri-apps/api/window'
     
+    import { Tabs ,TabsList,TabsTrigger,TabsContent}from "$lib/components/ui/tabs";
+
+    import { register } from '@tauri-apps/api/globalShortcut';
 	
-  
-	
-	
-	
+    
 	
     let unlisten:Function;
     let PROCESS:any={};
@@ -23,7 +23,10 @@
     let defaultTab='';
     onMount(async ()=>{
         zsh()
-       
+        await register('CommandOrControl+w', () => {
+          console.log('Shortcut triggered');
+        });
+	
         
         
     })
@@ -127,48 +130,24 @@
       
     }
 </script>
-
-
-
+<Tabs value="{defaultTab}" class="w-full" >
+  <TabsList>
     {#each Object.entries(PRE_PROCESS) as [id,shell]}
-      <a on:click={(e)=>focusTerm(shell)} value="{id}"><div>{shell.command}</div></a>
+      <TabsTrigger on:click={(e)=>focusTerm(shell)} value="{id}"><!--div class="w-8">x</div--><div>{shell.command}</div></TabsTrigger>
     {/each}
     <div class="grid w-6 justify-items-center" ><a href="#" on:click={zsh}>+</a></div>
-
+  </TabsList>
   {#each Object.entries(PRE_PROCESS) as [id,shell]}
     {#if shell.hide==undefined}
-
+    <TabsContent value="{id}">
       <svelte:component this={XTerminal}  bind:this={PRE_PROCESS[id].ref} on:titleChange={titleChange} on:terminalStart={terminalStart}  on:closeTab={closedTab} on:openTab={zsh}/>
-    
+    </TabsContent>
     {/if}
   {/each}
-
+</Tabs>
 <button on:click={opendoc}>open</button>
 <button on:click={changeUrl}>change</button>
 <XTemCommand on:invoke={handleMultiInvoke}/>
 <style>
-  body {
-    margin-top: 50px;
-  }
-  .titlebar {
-  height: 30px;
-  background: #000000;
-  user-select: none;
-  display: flex;
-  justify-content: flex-start;
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-}
-.titlebar-button {
-  display: inline-flex;
-  justify-content: center;
-  align-items: center;
-  width: 30px;
-  height: 30px;
-}
-.titlebar-button:hover {
-  background: #c36c5b;
-}
+  
 </style>
