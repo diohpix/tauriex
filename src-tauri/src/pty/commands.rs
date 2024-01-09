@@ -1,3 +1,4 @@
+extern crate nix;
 use cuid2;
 use portable_pty::{CommandBuilder, native_pty_system, PtySize};
 use tauri::{AppHandle, Manager, State};
@@ -9,6 +10,9 @@ use crate::pty::constants::{PTY_EXIT_EVENT, PTY_SPAWN_EVENT, PTY_STDOUT_EVENT};
 use crate::shell::SystemShell;
 use super::{PtyProcess, PtyExitPayload, PtyStdoutPayload, PtySpawnPayload};
 use super::constants::{MAX_PIPE_CHUNK_SIZE, READ_PAUSE_DURATION};
+
+use nix::sys::signal::{kill, Signal};
+use nix::unistd::Pid;
 
 #[tauri::command]
 pub async fn spawn_pty(
@@ -88,7 +92,7 @@ pub async fn spawn_pty(
 
     // Wait for the child to exit and send the exit code to the frontend
     let (kill_tx, mut kill_rx) = channel::<()>(1);
-
+    let pid = pty_master.process_group_leader().ok_or("not process leader")?;
     // Update the state with the new pty process
     {
         let mut ptys = state.ptys.lock().await;
@@ -142,15 +146,15 @@ pub async fn spawn_pty(
                     }).unwrap();
                 break;
             }
-
             _ => {
                 sleep(READ_PAUSE_DURATION).await;
                 continue;
             }
         }
     }
-
+    
     let mut ptys = state.ptys.lock().await;
+    
     if let Some(pty) = ptys.remove(&id) {
 
         // Need to drop the stdin_tx to avoid deadlock when waiting on stdin_task
@@ -159,15 +163,13 @@ pub async fn spawn_pty(
         // Need to drop the kill_tx to drop also the kill_rx
         drop(pty.kill_tx);
 
+        kill(Pid::from_raw(pid), Signal::SIGTERM).expect("already ");
         // Need to drop the pty_master to close out file handles and avoid deadlock when waiting on stdout_task
+        //pty.stdout_task.await.unwrap();
+        //pty.stdin_task.await.unwrap();
         drop(pty.pty_master);
-
-        pty.stdin_task.await.unwrap();
-        pty.stdout_task.await.unwrap();
-
         println!("[TAURI]: Successfully dropped pty ({}).", id.clone());
     }
-
     Ok(())
 }
 
@@ -212,7 +214,6 @@ pub async fn kill_pty(
     id: String,
 ) -> Result<(), String> {
     let mut ptys = state.ptys.lock().await;
-
     let pty = ptys.get_mut(&id)
         .ok_or("[KILL_PTY] The specified ID is not associated with any pty.")?;
 

@@ -5,7 +5,6 @@ use tauri::Builder;
 use tokio::sync::{Mutex};
 
 use crate::pty::PtyProcess;
-
 mod pty;
 mod shell;
 
