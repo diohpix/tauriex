@@ -34,12 +34,11 @@
           return false
         })
     });
-        
-        
-    
+       
     onDestroy(()=>{
-        close();
+        closeAll();
     })
+
     $:{
       const j = job.pop();
       if(j!==undefined){
@@ -54,24 +53,7 @@
      //   
       }
     }
-    async function closedTab(e:any){
-        await closeTabById(e.detail.id);
-    }
-    async function closeTabById(id:string){
-      if(PRE_PROCESS[id]!==undefined){
-        PRE_PROCESS[id].hide=true;
-        await tick();
-        delete PRE_PROCESS[id]
-        PRE_PROCESS=PRE_PROCESS;
-        if(Object.keys(PRE_PROCESS).length==0){
-         appWindow.close();
-        }
-        Object.entries(PRE_PROCESS).forEach(([l,k])=>{
-            defaultTab = l
-        })
-      }
-    }
-      function  zsh(){
+    function  zsh(){
       let shell = {
 	      id: ''+Date.now(),
 	      name: 'zsh',
@@ -83,23 +65,12 @@
        job.push(shell);
        PRE_PROCESS[shell.id]=shell;
        console.log('process',PRE_PROCESS)
-       //await tick();
        console.log('---------------shell---------------')
-       
-    }
-    async function close(){
-        for (const [key, value] of Object.entries(PROCESS)) {
-            invoke('kill_pty',{id:`${key}`});
-        }
-        PROCESS={}
     }
     
     function handleMultiInvoke(e:CustomEvent){
       for (const [key, value] of Object.entries(PRE_PROCESS)) {
-          //invoke(e.detail.cmd,{id:`${key}`,data:e.detail.msg});
-          console.log(e.detail)
           value.ref.setMessage(e.detail.msg)
-          
       }
     }
     function titleChange(e:CustomEvent){
@@ -115,6 +86,7 @@
     }
     
     function focusTerm(shell:any){
+      console.log('focus');
       PRE_PROCESS[shell.id].ref.focus();
       defaultTab=shell.id;
       appWindow.setTitle(shell.command);
@@ -138,18 +110,63 @@
       //appWindow.setAlwaysOnTop(true)
       
     }
+    function sortId(list:any){
+      
+      return list.sort((a, b) => ( Number.parseInt(a.id ) > Number.parseInt(b.id) ? -1 : 1))
+      
+    }
+    async function exitTab(e:any){
+      console.log('exittab')
+        await closeTabById(e.detail.id);
+    }
+    async function closeTabById(id:string){
+      console.log('closetab ',id);
+      
+      
+      if(PRE_PROCESS[id]!==undefined){
+        
+        var target = PRE_PROCESS[id];
+        target.hide=true;
+        var list = Object.values(PRE_PROCESS);
+        list = list.filter((t:any)=>t.hide==undefined);
+        sortId(list);
+        console.log('listsort',list)
+        console.log(list[0].id);
+        defaultTab=''+list[0].id;
+        
+        PRE_PROCESS=PRE_PROCESS;
+        await tick()
+        /*await tick();
+        delete PRE_PROCESS[id]
+        PRE_PROCESS=PRE_PROCESS;
+        if(Object.keys(PRE_PROCESS).length==0){
+         appWindow.close();
+        }
+        Object.entries(PRE_PROCESS).forEach(([l,k])=>{
+            defaultTab = l
+        })*/
+      }
+    }
+    async function closeAll(){
+      for (const [key, value] of Object.entries(PROCESS)) {
+            invoke('kill_pty',{id:`${key}`});
+      }
+      PROCESS={}
+    }
 </script>
 <Tabs value="{defaultTab}" class="w-full" >
   <TabsList>
     {#each Object.entries(PRE_PROCESS) as [id,shell]}
-      <TabsTrigger on:click={(e)=>focusTerm(shell)} value="{id}"><div on:click={closeTabById(id)} class="w-4">x</div><div>{shell.command}</div></TabsTrigger>
+      {#if shell.hide==undefined}
+      <TabsTrigger value="{id}"><div on:click={closeTabById(id)} class="w-4">x</div><div  on:click={(e)=>focusTerm(shell)}>{shell.command}</div></TabsTrigger>
+      {/if}
     {/each}
     <div class="grid w-6 bg-[#334155] justify-items-center" ><a href="#" on:click={zsh}>+</a></div>
   </TabsList>
   {#each Object.entries(PRE_PROCESS) as [id,shell]}
     {#if shell.hide==undefined}
     <TabsContent value="{id}">
-      <svelte:component this={XTerminal}  bind:this={PRE_PROCESS[id].ref} on:titleChange={titleChange} on:terminalStart={terminalStart}  on:closeTab={closedTab} on:openTab={zsh}/>
+      <svelte:component this={XTerminal}  bind:this={PRE_PROCESS[id].ref} on:titleChange={titleChange} on:terminalStart={terminalStart}  on:exit={exitTab} on:openTab={zsh}/>
     </TabsContent>
     {/if}
   {/each}

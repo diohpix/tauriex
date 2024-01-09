@@ -13,6 +13,7 @@
     let id:string;
     let unlisten:Function;
     let unlisten_exit:Function;
+    let exit:boolean =false;
     const dispatch = createEventDispatcher()
     export async  function setShell(sh:any){
         shell=sh;
@@ -26,9 +27,10 @@
             xterm.setMessage(bytes)
         })
         unlisten_exit = await listen('EVENTS:PTY:EXIT',async (event:any) => {
-            console.log('EXIT',event.payload.id,shell)
             if(event.payload.id === shell.ptyId){
-                dispatch('closeTab',shell)
+                console.log('EXIT',event.payload.id,shell)
+                exit=true;
+                dispatch('exit',shell)
                 close();
             }
         })
@@ -38,9 +40,6 @@
             if(cmd=='titleChange'){
                 shell.command = title;
                 dispatch('titleChange',shell);
-            }else if(cmd=='closeTab'){
-                dispatch(cmd,shell)
-                close();
             }else if(cmd=='openTab'){
                 dispatch(cmd)
             } 
@@ -59,8 +58,10 @@
     onDestroy(()=>{          
         unlisten();
         unlisten_exit();
-        console.log('destroy kill')  
-        invoke('kill_pty',{id:shell.ptyId})
+        console.log('destroy kill',shell.id)  
+        if(exit==false){
+            invoke('kill_pty',{id:shell.ptyId})
+        }
         
     })
     

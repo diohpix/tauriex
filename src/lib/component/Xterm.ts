@@ -82,9 +82,7 @@ class Xterm {
 				if (!e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey) {
 					this.invoke(key);
 				} else if (e.metaKey) {
-					if (e.code == 'KeyW') {
-						this.subCallback('closeTab');
-					} else if (e.code == 'KeyT') {
+					if (e.code == 'KeyT') {
 						this.subCallback('openTab');
 					}
 				}
