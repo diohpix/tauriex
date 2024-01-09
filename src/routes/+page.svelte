@@ -14,15 +14,8 @@
     import { window } from "@tauri-apps/api"
     import { register } from '@tauri-apps/api/globalShortcut';
     import { TauriEvent } from "@tauri-apps/api/event"
-
     
-
-
-    
-	
-    let unlisten:Function;
-    let PROCESS:any={};
-    let PRE_PROCESS:any={};
+    let PRE_PROCESS:any[]=[];
     let job:any[]=[];
     let defaultTab='';
     onMount(async ()=>{
@@ -42,15 +35,17 @@
     $:{
       const j = job.pop();
       if(j!==undefined){
-        const o  = PRE_PROCESS[j.id]
-        const k = setInterval(()=>{
-            if(o.ref!==undefined){
-              const oo = {id:j.id,name:j.name,command:j.command,args:j.args,env:j.env,icon:j.icon}
-              o.ref.setShell(oo)
-              clearInterval(k);
+        const process = PRE_PROCESS.find(t=>t.id ==j.id);
+        const interval = setInterval(()=>{
+            if(process.ref!==undefined){
+              const copiedObj = Object.assign({}, j);
+              //console.log(copiedObj)
+              copiedObj.ref=undefined;
+              //const oo = {id:j.id,name:j.name,command:j.command,args:j.args,env:j.env,icon:j.icon}
+              process.ref.setShell(copiedObj)
+              clearInterval(interval);
             }
         },100)
-     //   
       }
     }
     function  zsh(){
@@ -63,18 +58,22 @@
 	      icon: ''
        }
        job.push(shell);
-       PRE_PROCESS[shell.id]=shell;
+       console.log('push',job)
+       PRE_PROCESS.push(shell);
        console.log('process',PRE_PROCESS)
        console.log('---------------shell---------------')
+       job=job
+       PRE_PROCESS = PRE_PROCESS;
     }
     
     function handleMultiInvoke(e:CustomEvent){
-      for (const [key, value] of Object.entries(PRE_PROCESS)) {
-          value.ref.setMessage(e.detail.msg)
-      }
+      PRE_PROCESS.forEach(value=>{
+        value.ref.setMessage(e.detail.msg)
+      })
     }
     function titleChange(e:CustomEvent){
-      PRE_PROCESS[e.detail.id].command = e.detail.command;
+      var process = PRE_PROCESS.find(t=>t.id ==e.detail.id);
+      process.command = e.detail.command;
       if(defaultTab=== e.detail.id){
         appWindow.setTitle(e.detail.command);
       }
@@ -87,7 +86,8 @@
     
     function focusTerm(shell:any){
       console.log('focus');
-      PRE_PROCESS[shell.id].ref.focus();
+      var process = PRE_PROCESS.find(t=>t.id ==shell.id);
+      process.ref.focus();
       defaultTab=shell.id;
       appWindow.setTitle(shell.command);
     }
@@ -110,63 +110,47 @@
       //appWindow.setAlwaysOnTop(true)
       
     }
-    function sortId(list:any){
-      
-      return list.sort((a, b) => ( Number.parseInt(a.id ) > Number.parseInt(b.id) ? -1 : 1))
-      
-    }
     async function exitTab(e:any){
       console.log('exittab')
         await closeTabById(e.detail.id);
     }
     async function closeTabById(id:string){
-      console.log('closetab ',id);
-      
-      
-      if(PRE_PROCESS[id]!==undefined){
+      console.log('closetab ',id,defaultTab);
+      var process = PRE_PROCESS.find(t=>t.id ==id);
+      if(process!==undefined){
+        process.hide=true;
         
-        var target = PRE_PROCESS[id];
-        target.hide=true;
-        var list = Object.values(PRE_PROCESS);
-        list = list.filter((t:any)=>t.hide==undefined);
-        sortId(list);
-        console.log('listsort',list)
-        console.log(list[0].id);
-        defaultTab=''+list[0].id;
+          const idx = PRE_PROCESS.findIndex(t=>t.id == id);
+          if(idx == PRE_PROCESS.length-1){
+            console.log('nidx 0 ',(idx-1))
+            defaultTab=PRE_PROCESS[idx-1].id;
+          }else{
+            console.log('nidx 1 ',(idx+2))
+            defaultTab=PRE_PROCESS[idx+1].id;
+          }        
         
-        PRE_PROCESS=PRE_PROCESS;
-        await tick()
-        /*await tick();
-        delete PRE_PROCESS[id]
-        PRE_PROCESS=PRE_PROCESS;
-        if(Object.keys(PRE_PROCESS).length==0){
-         appWindow.close();
-        }
-        Object.entries(PRE_PROCESS).forEach(([l,k])=>{
-            defaultTab = l
-        })*/
+        //PRE_PROCESS=PRE_PROCESS;
       }
     }
     async function closeAll(){
-      for (const [key, value] of Object.entries(PROCESS)) {
-            invoke('kill_pty',{id:`${key}`});
-      }
-      PROCESS={}
+      PRE_PROCESS.forEach(e=>{
+        invoke('kill_pty',{id:`${e.id}`});
+      })
     }
 </script>
 <Tabs value="{defaultTab}" class="w-full" >
   <TabsList>
-    {#each Object.entries(PRE_PROCESS) as [id,shell]}
-      {#if shell.hide==undefined}
-      <TabsTrigger value="{id}"><div on:click={closeTabById(id)} class="w-4">x</div><div  on:click={(e)=>focusTerm(shell)}>{shell.command}</div></TabsTrigger>
+    {#each PRE_PROCESS as process}
+      {#if process.hide==undefined}
+      <TabsTrigger value="{process.id}"><div on:click={closeTabById(process.id)} class="w-4">x</div><div  on:click={(e)=>focusTerm(process)}>{process.command}</div></TabsTrigger>
       {/if}
     {/each}
     <div class="grid w-6 bg-[#334155] justify-items-center" ><a href="#" on:click={zsh}>+</a></div>
   </TabsList>
-  {#each Object.entries(PRE_PROCESS) as [id,shell]}
-    {#if shell.hide==undefined}
-    <TabsContent value="{id}">
-      <svelte:component this={XTerminal}  bind:this={PRE_PROCESS[id].ref} on:titleChange={titleChange} on:terminalStart={terminalStart}  on:exit={exitTab} on:openTab={zsh}/>
+  {#each PRE_PROCESS as process}
+    {#if process.hide==undefined}
+    <TabsContent value="{process.id}">
+      <svelte:component this={XTerminal}  bind:this={process.ref} on:titleChange={titleChange} on:terminalStart={terminalStart}  on:exit={exitTab} on:openTab={zsh}/>
     </TabsContent>
     {/if}
   {/each}
