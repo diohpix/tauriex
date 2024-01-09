@@ -11,9 +11,13 @@
     import { appWindow,WebviewWindow } from '@tauri-apps/api/window'
     
     import { Tabs ,TabsList,TabsTrigger,TabsContent}from "$lib/components/ui/tabs";
-
+    import { window } from "@tauri-apps/api"
     import { register } from '@tauri-apps/api/globalShortcut';
-	
+    import { TauriEvent } from "@tauri-apps/api/event"
+
+    
+
+
     
 	
     let unlisten:Function;
@@ -23,20 +27,22 @@
     let defaultTab='';
     onMount(async ()=>{
         zsh()
-        await register('CommandOrControl+w', () => {
-          console.log('Shortcut triggered');
-        });
-	
+        window.getCurrent().listen(TauriEvent.WINDOW_CLOSE_REQUESTED, () => {
+          //alert("Closing window and maybe saving some data :)")
+          console.log('closed request')
+          closeTabById(defaultTab);
+          return false
+        })
+    });
         
         
-    })
+    
     onDestroy(()=>{
         close();
     })
     $:{
       const j = job.pop();
       if(j!==undefined){
-        console.log('job',j)
         const o  = PRE_PROCESS[j.id]
         const k = setInterval(()=>{
             if(o.ref!==undefined){
@@ -49,18 +55,21 @@
       }
     }
     async function closedTab(e:any){
-      
-      PRE_PROCESS[e.detail.id].hide=true;
-      await tick();
-      delete PRE_PROCESS[e.detail.id]
-      PRE_PROCESS=PRE_PROCESS;
-      if(Object.keys(PRE_PROCESS).length==0){
-       // appWindow.close();
+        await closeTabById(e.detail.id);
+    }
+    async function closeTabById(id:string){
+      if(PRE_PROCESS[id]!==undefined){
+        PRE_PROCESS[id].hide=true;
+        await tick();
+        delete PRE_PROCESS[id]
+        PRE_PROCESS=PRE_PROCESS;
+        if(Object.keys(PRE_PROCESS).length==0){
+         appWindow.close();
+        }
+        Object.entries(PRE_PROCESS).forEach(([l,k])=>{
+            defaultTab = l
+        })
       }
-      Object.entries(PRE_PROCESS).forEach(([l,k])=>{
-          defaultTab = l
-          console.log('def',defaultTab)
-      })
     }
       function  zsh(){
       let shell = {
@@ -133,9 +142,9 @@
 <Tabs value="{defaultTab}" class="w-full" >
   <TabsList>
     {#each Object.entries(PRE_PROCESS) as [id,shell]}
-      <TabsTrigger on:click={(e)=>focusTerm(shell)} value="{id}"><!--div class="w-8">x</div--><div>{shell.command}</div></TabsTrigger>
+      <TabsTrigger on:click={(e)=>focusTerm(shell)} value="{id}"><div on:click={closeTabById(id)} class="w-4">x</div><div>{shell.command}</div></TabsTrigger>
     {/each}
-    <div class="grid w-6 justify-items-center" ><a href="#" on:click={zsh}>+</a></div>
+    <div class="grid w-6 bg-[#334155] justify-items-center" ><a href="#" on:click={zsh}>+</a></div>
   </TabsList>
   {#each Object.entries(PRE_PROCESS) as [id,shell]}
     {#if shell.hide==undefined}

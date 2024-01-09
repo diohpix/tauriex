@@ -12,6 +12,7 @@
     let shell:any=null;
     let id:string;
     let unlisten:Function;
+    let unlisten_exit:Function;
     const dispatch = createEventDispatcher()
     export async  function setShell(sh:any){
         shell=sh;
@@ -24,12 +25,18 @@
             }
             xterm.setMessage(bytes)
         })
+        unlisten_exit = await listen('EVENTS:PTY:EXIT',async (event:any) => {
+            console.log('EXIT',event.payload.id,shell)
+            if(event.payload.id === shell.ptyId){
+                dispatch('closeTab',shell)
+                close();
+            }
+        })
         xterm = new Xterm(shell,termdiv,(cmd:string,obj:any)=>{
             invoke(cmd,obj);
         },(cmd:string,title:string)=>{
             if(cmd=='titleChange'){
                 shell.command = title;
-                console.log('title',title)
                 dispatch('titleChange',shell);
             }else if(cmd=='closeTab'){
                 dispatch(cmd,shell)
@@ -51,7 +58,8 @@
     })   
     onDestroy(()=>{          
         unlisten();
-        console.log('destroy')  
+        unlisten_exit();
+        console.log('destroy kill')  
         invoke('kill_pty',{id:shell.ptyId})
         
     })

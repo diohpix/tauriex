@@ -7,8 +7,8 @@ class Xterm {
 	fitAddon: FitAddon;
 	callback: Function;
 	subCallback: Function;
-	el:HTMLElement;
-	shell: any ;
+	el: HTMLElement;
+	shell: any;
 	constructor(shell: any, element: HTMLElement, callback: Function, callback2: Function) {
 		this.term = new Terminal({});
 		this.fitAddon = new FitAddon();
@@ -22,13 +22,13 @@ class Xterm {
 		this.term.write(id);
 	}
 	mount(element: HTMLElement) {
-		this.el=element;
+		this.el = element;
 		let _composingStart = false;
 		let _fromOndata = false;
 
 		this.term.loadAddon(this.fitAddon);
-		this.term.loadAddon(new WebglAddon());
-		//this.term.loadAddon(new CanvasAddon());
+		//this.term.loadAddon(new WebglAddon());
+		this.term.loadAddon(new CanvasAddon());
 		this.term.options = {
 			fontSize: 12,
 			logLevel: 'info',
@@ -36,13 +36,13 @@ class Xterm {
 			windowOptions: { popTitle: true, pushTitle: true, getWinTitle: true, getIconTitle: true }
 		};
 		this.term.open(element);
-		
+
 		this.fitAddon.fit();
 		const resizeObserver = new ResizeObserver((entries) => {
 			//if (autoResize) {
 			this.fitAddon.fit();
 			this.term.focus();
-			console.log('resize-------------------');
+			//console.log('resize-------------------');
 			//}
 		});
 		resizeObserver.observe(element);
@@ -52,7 +52,7 @@ class Xterm {
 				const inputType = e.inputType;
 				if (key !== null) {
 					const keyCode = key.charCodeAt(0);
-					console.log(inputType, 'key ', key, 'start', _composingStart, keyCode);
+					//console.log(inputType, 'key ', key, 'start', _composingStart, keyCode);
 					if ((keyCode < 12593 || keyCode > 12643) && (keyCode < 44032 || keyCode > 55203)) {
 						return;
 					}
@@ -75,7 +75,7 @@ class Xterm {
 		});
 		this.term.element?.addEventListener('keydown', (e: KeyboardEvent) => {
 			const key = e.key;
-			console.log('down', key, 'compStart', _composingStart, _fromOndata);
+			//	console.log('down', key, 'compStart', _composingStart, _fromOndata);
 			if (_fromOndata) {
 				_fromOndata = false;
 			} else {
@@ -94,7 +94,7 @@ class Xterm {
 		this.term.onData((data: any) => {
 			_fromOndata = true;
 			const keyCode = data.charCodeAt(0);
-			console.log('ondata ', data, 'compStart', _composingStart, keyCode);
+			//	console.log('ondata ', data, 'compStart', _composingStart, keyCode);
 			if ((keyCode < 12593 || keyCode > 12643) && (keyCode < 44032 || keyCode > 55203)) {
 				if (_composingStart) {
 					this.invoke('\u001b[C' + data);
@@ -123,7 +123,7 @@ class Xterm {
 		};
 		this.callback('resize_pty', obj);
 	}
-	focus(){
+	focus() {
 		this.fitAddon.fit();
 		this.term.focus();
 	}
